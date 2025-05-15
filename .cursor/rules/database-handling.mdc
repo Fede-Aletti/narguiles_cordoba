@@ -1,0 +1,194 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Guía de Interacción con la Base de Datos (Supabase)
+
+## 1. Configuración Inicial
+
+* **Instalación**:
+
+  ```bash
+  npm install @supabase/supabase-js
+  ```
+
+* **Cliente Supabase**:
+
+  ```ts
+  import { createClient } from '@supabase/supabase-js'
+
+  export const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  ```
+
+* **Autenticación**: Usar `supabase.auth.getSession()` y enviar el JWT en encabezados.
+
+---
+
+## 2. Convenciones Generales
+
+* **Tablas en singular**: `user`, `product`, `order`, etc.
+* **Campos timestamps y soft‑delete**:
+
+  * `created_at` (TIMESTAMP)
+  * `updated_at` (TIMESTAMP)
+  * `deleted_at` (TIMESTAMP | NULL)
+* **Filtros básicos**: siempre incluir `.is('deleted_at', null)` para omitir registros borrados.
+* **Aliases cortos**: usar alias de 1 o 2 letras (`u`, `p`, `o`) en queries SQL crudas.
+* **Parámetros**: minimizar SQL crudo; usar API de Supabase con `.eq()`, `.lt()`, etc.
+
+---
+
+## 3. Políticas de Acceso (RLS)
+
+1. Habilitar RLS en cada tabla:
+
+   ```sql
+   ALTER TABLE public.product ENABLE ROW LEVEL SECURITY;
+   ```
+
+2. Definir políticas por rol (ejemplo en consola SQL):
+
+   ```sql
+   -- Solo superadmin puede todo
+   CREATE POLICY "superadmin_full" ON public.product
+     FOR ALL USING (current_user_role() = 'superadmin');
+
+   -- Admin puede gestionar productos
+   CREATE POLICY "admin_manage" ON public.product
+     FOR ALL USING (current_user_role() IN ('superadmin','admin'));
+
+   -- Marketing solo lectura
+   CREATE POLICY "marketing_read" ON public.product
+     FOR SELECT USING (current_user_role() = 'marketing');
+
+   -- Client solo ver en stock
+   CREATE POLICY "client_view" ON public.product
+     FOR SELECT USING (status = 'in_stock');
+   ```
+
+3. Consumir peticiones: Supabase incluirá `Authorization` y aplicará automáticamente las policies.
+
+---
+
+## 4. Operaciones CRUD con Supabase
+
+### 4.1 Lectura (SELECT)
+
+* **Listar productos activos**:
+
+  ```ts
+  const { data, error } = await supabase
+    .from('product')
+    .select('id, name, price, status')
+    .eq('status', 'in_stock')
+    .is('deleted_at', null)
+  ```
+
+* **Obtener detalles**:
+
+  ```ts
+  const { data, error } = await supabase
+    .from('product')
+    .select('*, category(name), brand(name)')
+    .eq('id', productId)
+    .single()
+  ```
+
+### 4.2 Creación (INSERT)
+
+* **Crear usuario**:
+
+  ```ts
+  const { data, error } = await supabase
+    .from('user')
+    .insert([{ auth_user_id: userId, first_name, last_name }])
+    .select()
+  ```
+
+* **Insertar orden y items (transacción simulada)**:
+
+  ```ts
+  const { data: order, error: err1 } = await supabase
+    .from('order')
+    .insert([{ user_id, status: 'in_cart', total, total_quantity }])
+    .select('id')
+    .single()
+
+  if (order) {
+    const items = orderItems.map(i => ({ order_id: order.id, ...i }))
+    await supabase.from('order_item').insert(items)
+  }
+  ```
+
+### 4.3 Actualización (UPDATE)
+
+* **Actualizar perfil propio**:
+
+  ```ts
+  const { data, error } = await supabase
+    .from('user')
+    .update({ first_name, last_name, updated_at: new Date().toISOString() })
+    .eq('auth_user_id', session.user.id)
+    .is('deleted_at', null)
+  ```
+
+### 4.4 Borrado Lógico (Soft‑Delete)
+
+* **Soft‑delete de review**:
+
+  ```ts
+  const { data, error } = await supabase
+    .from('review')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', reviewId)
+    .is('deleted_at', null)
+  ```
+
+---
+
+## 5. Patrones Avanzados
+
+### 5.1 Paginación
+
+```ts
+const { data, error } = await supabase
+  .from('product')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .range(from, to)
+```
+
+### 5.2 Búsqueda Full‑Text
+
+```ts
+const { data, error } = await supabase
+  .from('product')
+  .select('*')
+  .textSearch('name', 'shisha & fruit')
+```
+
+### 5.3 Cálculo de precio final
+
+* Consumir función SQL: `get_final_price(product_id)`
+
+  ```ts
+  const { data, error } = await supabase
+    .rpc('get_final_price', { product_id: productId })
+  ```
+
+---
+
+## 6. Buenas Prácticas
+
+* **Errores**: manejar `error` retornado y mostrar mensajes amigables.
+* **Transacciones**: simular con múltiples llamadas y rollback manual si uno falla.
+* **Seguridad**: no exponer `anon` key en cliente público más allá de environment.
+* **Rendimiento**: usar índices en `deleted_at`, `status`, `created_at`.
+
+---
+
+Con esta guía tu editor AI tendrá un marco claro de cómo generar interacciones seguras, consistentes y alineadas con tu esquema y políticas de Supabase.
