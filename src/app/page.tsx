@@ -1,19 +1,9 @@
-import { HeroSection } from "@/components/sections/hero-section";
-import { PromotionCarousel } from "@/components/sections/promotion-carousel";
-import { FeaturedProducts } from "@/components/sections/featured-products";
-import { OurStores } from "@/components/sections/our-stores";
-import { PartnerRetailers } from "@/components/sections/partner-retailers";
-import { SiteHeader } from "@/components/sections/site-header";
-import { SiteFooter } from "@/components/sections/site-footer";
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
 
-export default function HomePage() {
-  return (
-    <>
-      <HeroSection />
-      <PromotionCarousel />
-      <FeaturedProducts />
-      <OurStores />
-      <PartnerRetailers />
-    </>
-  );
+export default async function Home() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+
+  return redirect("/home");
 }

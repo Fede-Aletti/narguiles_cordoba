@@ -1,0 +1,240 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+-- ENUMS
+CREATE TYPE user_role AS ENUM ('superadmin', 'admin', 'marketing', 'client');
+CREATE TYPE gender_type AS ENUM ('male', 'female', 'other', 'prefer_not_to_say');
+CREATE TYPE product_status AS ENUM ('in_stock', 'out_of_stock', 'running_low');
+CREATE TYPE order_status AS ENUM ('in_cart', 'placed', 'confirmed', 'processed', 'pickup', 'delivered');
+
+-- USERS
+CREATE TABLE "user" (
+  id SERIAL PRIMARY KEY,
+  auth_user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  phone_number VARCHAR(20),
+  role user_role DEFAULT 'client',
+  gender gender_type,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+
+-- ADDRESS
+CREATE TABLE address (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE,
+  street VARCHAR(255),
+  street_number VARCHAR(20),
+  province VARCHAR(100),
+  city VARCHAR(100),
+  postal_code VARCHAR(20),
+  phone_number VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- MEDIA
+CREATE TABLE media (
+  id SERIAL PRIMARY KEY,
+  url TEXT NOT NULL,
+  alt TEXT,
+  created_by INTEGER REFERENCES "user"(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- CATEGORY
+CREATE TABLE category (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  image_id INTEGER REFERENCES media(id),
+  created_by INTEGER REFERENCES "user"(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- BRAND
+CREATE TABLE brand (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  image_id INTEGER REFERENCES media(id),
+  created_by INTEGER REFERENCES "user"(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- PRICE_GROUP
+CREATE TABLE price_group (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  price NUMERIC(10,2) NOT NULL,
+  created_by INTEGER REFERENCES "user"(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- PRODUCT
+CREATE TABLE product (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  stock INTEGER DEFAULT 0,
+  price NUMERIC(10,2),
+  price_group_id INTEGER REFERENCES price_group(id),
+  brand_id INTEGER REFERENCES brand(id),
+  category_id INTEGER REFERENCES category(id),
+  status product_status DEFAULT 'in_stock',
+  created_by INTEGER REFERENCES "user"(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- PRODUCT_MEDIA
+CREATE TABLE product_media (
+  id SERIAL PRIMARY KEY,
+  product_id INTEGER REFERENCES product(id) ON DELETE CASCADE,
+  media_id INTEGER REFERENCES media(id)
+);
+
+-- DISCOUNTS
+CREATE TABLE discount (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  percentage NUMERIC(5,2) CHECK (percentage > 0 AND percentage <= 100),
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+CREATE TABLE discount_brand (
+  id SERIAL PRIMARY KEY,
+  discount_id INTEGER REFERENCES discount(id) ON DELETE CASCADE,
+  brand_id INTEGER REFERENCES brand(id) ON DELETE CASCADE
+);
+
+CREATE TABLE discount_category (
+  id SERIAL PRIMARY KEY,
+  discount_id INTEGER REFERENCES discount(id) ON DELETE CASCADE,
+  category_id INTEGER REFERENCES category(id) ON DELETE CASCADE
+);
+
+CREATE TABLE discount_product (
+  id SERIAL PRIMARY KEY,
+  discount_id INTEGER REFERENCES discount(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES product(id) ON DELETE CASCADE
+);
+
+-- REVIEW
+CREATE TABLE review (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES "user"(id),
+  product_id INTEGER REFERENCES product(id),
+  brand_id INTEGER REFERENCES brand(id),
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- ORDER
+CREATE TABLE "order" (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES "user"(id),
+  status order_status DEFAULT 'in_cart',
+  total NUMERIC(10,2),
+  total_quantity INTEGER,
+  shipping_address_id INTEGER REFERENCES address(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+-- ORDER_ITEM
+CREATE TABLE order_item (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER REFERENCES "order"(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES product(id),
+  quantity INTEGER,
+  price_at_purchase NUMERIC(10,2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP
+);
+
+
+-- TRIGGER TO SYNC WITH auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public."user" (auth_user_id)
+  VALUES (NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- RLS USERS
+ALTER TABLE public."user" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their data" ON public."user"
+  FOR SELECT USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update their data" ON public."user"
+  FOR UPDATE USING (auth.uid() = auth_user_id);
+
+-- FUNCTION TO GET ROLE
+CREATE OR REPLACE FUNCTION current_user_role()
+RETURNS user_role AS $$
+  SELECT role FROM public."user" WHERE auth_user_id = auth.uid();
+$$ LANGUAGE SQL STABLE;
+
+-- RLS HELPERS FOR ROLE
+-- SUPERADMIN
+CREATE POLICY "Superadmin full access to all tables" ON public."user"
+  FOR ALL USING (current_user_role() = 'superadmin');
+
+-- ADMIN
+-- Example: access to orders
+-- You would need to repeat for each relevant table (orders, products, etc)
+-- Here’s the setup for orders and products:
+
+ALTER TABLE public."order" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin can manage orders" ON public."order"
+  FOR ALL USING (current_user_role() IN ('superadmin', 'admin'));
+
+ALTER TABLE public.product ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin can manage products" ON public.product
+  FOR ALL USING (current_user_role() IN ('superadmin', 'admin'));
+
+-- MARKETING
+-- Read-only access
+CREATE POLICY "Marketing can read data" ON public.product
+  FOR SELECT USING (current_user_role() = 'marketing');
+
+CREATE POLICY "Marketing can view orders" ON public."order"
+  FOR SELECT USING (current_user_role() = 'marketing');
+
+-- CLIENTS
+-- Can view products, manage own orders, update their profile
+CREATE POLICY "Client can view products" ON public.product
+  FOR SELECT USING (current_user_role() = 'client');
+
+CREATE POLICY "Client can view own orders" ON public."order"
+  FOR SELECT USING (user_id = (SELECT id FROM public."user" WHERE auth_user_id = auth.uid()));
+
+CREATE POLICY "Client can update own orders in_cart" ON public."order"
+  FOR UPDATE USING (
+    user_id = (SELECT id FROM public."user" WHERE auth_user_id = auth.uid()) AND status = 'in_cart'
+  );
