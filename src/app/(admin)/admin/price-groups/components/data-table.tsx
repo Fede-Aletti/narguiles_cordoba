@@ -1,12 +1,7 @@
-// src/app/admin/catalogo/category-table.tsx
+// src/app/admin/price-groups/price-group-table.tsx
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchCategories,
-  createCategory,
-  updateCategory,
-} from "./category-queries";
-import { CategoryForm } from "./category-form";
+import { PriceGroupForm } from "./price-group-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,35 +12,41 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  fetchPriceGroups,
+  createPriceGroup,
+  updatePriceGroup,
+} from "@/actions/price-group-actions";
 
-export function CategoryTable() {
+export function PriceGroupTable() {
   const queryClient = useQueryClient();
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategories,
+  const { data: priceGroups = [], isLoading } = useQuery({
+    queryKey: ["priceGroups"],
+    queryFn: fetchPriceGroups,
   });
   const [open, setOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState<{
+  const [editGroup, setEditGroup] = useState<{
     id: number;
     name: string;
+    price: number;
   } | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: createCategory,
+    mutationFn: createPriceGroup,
     onSuccess: () => {
-      toast.success("Categoría creada");
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Grupo de precio creado");
+      queryClient.invalidateQueries({ queryKey: ["priceGroups"] });
       setOpen(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const updateMutation = useMutation({
-    mutationFn: updateCategory,
+    mutationFn: updatePriceGroup,
     onSuccess: () => {
-      toast.success("Categoría actualizada");
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      setEditCategory(null);
+      toast.success("Grupo de precio actualizado");
+      queryClient.invalidateQueries({ queryKey: ["priceGroups"] });
+      setEditGroup(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -53,16 +54,16 @@ export function CategoryTable() {
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <h2 className="text-xl font-semibold">Categorías</h2>
+        <h2 className="text-xl font-semibold">Grupos de Precios</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>Crear Categoría</Button>
+            <Button>Crear Grupo</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Nueva Categoría</DialogTitle>
+              <DialogTitle>Nuevo Grupo de Precios</DialogTitle>
             </DialogHeader>
-            <CategoryForm
+            <PriceGroupForm
               onSubmit={(data) => createMutation.mutate(data)}
               loading={createMutation.isPending}
             />
@@ -73,7 +74,7 @@ export function CategoryTable() {
         <thead>
           <tr>
             <th className="text-left p-2">Nombre</th>
-            <th className="text-left p-2">Creado</th>
+            <th className="text-left p-2">Precio</th>
             <th className="text-left p-2">Acciones</th>
           </tr>
         </thead>
@@ -83,17 +84,15 @@ export function CategoryTable() {
               <td colSpan={3}>Cargando...</td>
             </tr>
           ) : (
-            categories.map((cat) => (
-              <tr key={cat.id}>
-                <td className="p-2">{cat.name}</td>
-                <td className="p-2">
-                  {new Date(cat.created_at).toLocaleDateString()}
-                </td>
+            priceGroups.map((pg) => (
+              <tr key={pg.id}>
+                <td className="p-2">{pg.name}</td>
+                <td className="p-2">${Number(pg.price).toFixed(2)}</td>
                 <td className="p-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditCategory(cat)}
+                    onClick={() => setEditGroup(pg)}
                   >
                     Editar
                   </Button>
@@ -104,17 +103,17 @@ export function CategoryTable() {
         </tbody>
       </table>
       <Dialog
-        open={!!editCategory}
-        onOpenChange={(open) => !open && setEditCategory(null)}
+        open={!!editGroup}
+        onOpenChange={(open) => !open && setEditGroup(null)}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Categoría</DialogTitle>
+            <DialogTitle>Editar Grupo de Precios</DialogTitle>
           </DialogHeader>
-          <CategoryForm
-            defaultValues={editCategory ?? undefined}
+          <PriceGroupForm
+            defaultValues={editGroup ?? undefined}
             onSubmit={(data) =>
-              updateMutation.mutate({ id: editCategory!.id, ...data })
+              updateMutation.mutate({ id: editGroup!.id, ...data })
             }
             loading={updateMutation.isPending}
           />

@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from "@/components/ui/input"
 import { fetchProducts } from '@/lib/queries/product-queries' // Ajusta la ruta
-import type { ProductRow } from '@/types/product' // Ajusta la ruta
+import type { ProductFormData, ProductRow } from '@/types/product' // Ajusta la ruta
 import { Dialog, DialogHeader, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { PlusCircle } from 'lucide-react'
 import { ProductForm } from './product-form'
@@ -65,10 +65,23 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [editingProduct, setEditingProduct] = React.useState<TData | null>(null)
+
+  // Efecto para escuchar el evento de edición
+  React.useEffect(() => {
+    const handleEditProduct = (e: any) => {
+      setEditingProduct(e.detail)
+    }
+    
+    window.addEventListener('EDIT_PRODUCT', handleEditProduct)
+    return () => {
+      window.removeEventListener('EDIT_PRODUCT', handleEditProduct)
+    }
+  }, [])
 
   const { data: productsData, isLoading, error } = useQuery<TData[]>({
     queryKey: ['products'],
-    queryFn: fetchProducts as () => Promise<TData[]>, // Cast para que coincida con TData
+    queryFn: fetchProducts as () => Promise<TData[]>,
   })
 
   const table = useReactTable({
@@ -174,6 +187,22 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
           Siguiente
         </Button>
       </div>
+
+      {/* Diálogo de edición */}
+      <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Editar Producto</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <ProductForm 
+              productData={editingProduct as unknown as ProductFormData} 
+              isEditing={true}
+              setOpen={(open) => !open && setEditingProduct(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

@@ -1,8 +1,8 @@
 // src/app/admin/catalogo/page.tsx
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { CategoryTable } from "./category-table";
-import { BrandTable } from "./brand-table";
+import { CategoryTable } from "./components/category-table";
+import { BrandTable } from "./components/brand-table";
 
 export default async function CatalogoPage() {
   const supabase = await createClient();

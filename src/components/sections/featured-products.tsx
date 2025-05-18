@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import Link from "next/link";
 
 export function FeaturedProducts() {
   const { products, addToCart } = useStore();
@@ -17,9 +18,9 @@ export function FeaturedProducts() {
           <h2 className="text-3xl font-serif font-bold text-white">
             Productos <span className="text-primary">destacados</span>
           </h2>
-          <Button variant="link" className="text-primary hover:text-primary/80">
+          <Link href="/tienda" className="text-primary hover:text-primary/80">
             Ver todos los productos
-          </Button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

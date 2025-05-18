@@ -142,23 +142,28 @@ export function EventsGrid() {
 
         if (isVisible) {
           const currentLength = visibleImages.length;
-          const nextBatch = eventImages
-            .slice(currentLength, currentLength + 4)
-            .map((img) => img.id);
+          // Solo cargar si no has cargado todas las imágenes
+          if (currentLength < eventImages.length) {
+            const nextBatch = eventImages
+              .slice(currentLength, currentLength + 4)
+              .map((img) => img.id);
 
-          if (nextBatch.length > 0) {
-            setVisibleImages((prev) => [...prev, ...nextBatch]);
+            if (nextBatch.length > 0) {
+              setVisibleImages((prev) => [...prev, ...nextBatch]);
+            }
           }
         }
       }
     };
 
-    // Cargar las primeras imágenes al montar
-    setVisibleImages(eventImages.slice(0, 8).map((img) => img.id));
+    // Cargar las primeras imágenes solo al montar (primera ejecución)
+    if (visibleImages.length === 0) {
+      setVisibleImages(eventImages.slice(0, 8).map((img) => img.id));
+    }
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [visibleImages]);
+  }, []); // ← Elimina visibleImages de las dependencias
 
   const getSelectedImage = () => {
     if (selectedImage === null) return null;

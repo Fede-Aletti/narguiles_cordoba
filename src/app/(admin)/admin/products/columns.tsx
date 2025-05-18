@@ -111,8 +111,10 @@ export const columns: ColumnDef<ProductRow>[] = [
               Copiar ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Editar</DropdownMenuItem> {/* Implementar luego */}
-            <DropdownMenuItem className="text-red-600">Eliminar</DropdownMenuItem> {/* Implementar luego */}
+            <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('EDIT_PRODUCT', { detail: product }))}>
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-red-600">Eliminar</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )

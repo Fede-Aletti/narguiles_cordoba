@@ -13,7 +13,7 @@ export default function ShopPage() {
   return (
     <div className="flex min-h-screen flex-col">
 
-      <main className="flex-1 pt-16">
+      <main className="flex-1">
         <ProductsPage />
       </main>
 

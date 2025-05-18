@@ -28,4 +28,6 @@ export type ProductFormData = {
   brand_id: number
   category_id: number
   status: ProductStatus
+  media_id?: number | null;
+  media_url?: string;
 } 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function PrivatePage() {
   const supabase = await createClient();
@@ -30,6 +31,13 @@ export default async function PrivatePage() {
     : authData.user.email;
 
   const adminSections = [
+    {
+      title: "Usuarios",
+      description: "Gestionar usuarios y sus permisos",
+      href: "/admin/usuarios",
+      color: "bg-indigo-500",
+      icon: "👥",
+    },
     {
       title: "Productos",
       description: "Gestionar el catálogo de productos",

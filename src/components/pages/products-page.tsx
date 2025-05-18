@@ -82,13 +82,12 @@ export function ProductsPage() {
     <div className="bg-black min-h-screen">
       {/* Page Header */}
       <div className="bg-gradient-to-b from-gray-900 to-black py-12 md:py-16">
-        <div className="container px-4 md:px-6">
+        <div className="container  pt-24 px-4 md:px-6">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-white text-center">
             Premium <span className="text-gold-400">Collection</span>
           </h1>
           <p className="mt-4 text-gray-400 text-center max-w-2xl mx-auto">
-            Discover our exclusive selection of luxury hookahs, premium tobacco blends, and accessories crafted for the
-            discerning connoisseur.
+            Descubre nuestra colección de productos premium, diseñados para ofrecerte la mejor experiencia.
           </p>
         </div>
       </div>

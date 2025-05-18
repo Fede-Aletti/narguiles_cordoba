@@ -35,7 +35,9 @@ import {
   ProductStatus,
 } from "@/interfaces/enums"; // Import PRODUCT_STATUS_OPTIONS
 import type { ProductFormData } from "@/types/product";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { MediaGalleryPicker } from './media-gallery-picker';
+import Image from 'next/image';
 
 // Definir PRODUCT_STATUS_OPTIONS en enums.ts o aquí
 // export const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
@@ -71,6 +73,8 @@ const productFormSchema = z
     status: z.enum(PRODUCT_STATUS_VALUES as [string, ...string[]], {
       errorMap: () => ({ message: "Selecciona un estado válido." }),
     }),
+    media_id: z.number().optional().nullable(),
+    media_url: z.string().optional(),
   })
   .refine((data) => data.price || data.price_group_id, {
     message: "Debes especificar un precio o un grupo de precios.",
@@ -81,9 +85,11 @@ type ProductFormValues = z.infer<typeof productFormSchema>;
 
 interface ProductFormProps {
   setOpen: (open: boolean) => void; // Para cerrar el diálogo
+  productData?: ProductFormData;
+  isEditing?: boolean;
 }
 
-export function ProductForm({ setOpen }: ProductFormProps) {
+export function ProductForm({ setOpen, productData, isEditing = false }: ProductFormProps) {
   const queryClient = useQueryClient();
 
   const form = useForm<ProductFormValues>({
@@ -154,6 +160,18 @@ export function ProductForm({ setOpen }: ProductFormProps) {
     };
     mutation.mutate(payload);
   }
+
+  // Estado para manejar la URL de la imagen seleccionada
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | undefined>(
+    isEditing && productData?.media_url ? productData.media_url : undefined
+  );
+  
+  // Manejar la selección de imagen
+  const handleSelectMedia = (media: { id: number; url: string; alt?: string }) => {
+    form.setValue('media_id', media.id);
+    form.setValue('media_url', media.url);
+    setSelectedMediaUrl(media.url);
+  };
 
   return (
     <Form {...form}>
@@ -383,6 +401,42 @@ export function ProductForm({ setOpen }: ProductFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="media_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Imagen del Producto</FormLabel>
+              <div className="flex items-center gap-4">
+                <FormControl>
+                  <Input 
+                    {...form.register('media_url')}
+                    placeholder="URL de la imagen" 
+                    value={form.watch('media_url') || ''}
+                    onChange={(e) => form.setValue('media_url', e.target.value)}
+                  />
+                </FormControl>
+                <MediaGalleryPicker
+                  onSelectMedia={handleSelectMedia}
+                  selectedUrl={selectedMediaUrl}
+                />
+              </div>
+              {selectedMediaUrl && (
+                <div className="mt-2 relative w-full h-40 rounded-md overflow-hidden border">
+                  <Image
+                    src={selectedMediaUrl}
+                    alt="Preview"
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, 300px"
+                  />
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

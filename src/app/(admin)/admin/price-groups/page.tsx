@@ -1,7 +1,7 @@
 // src/app/admin/price-groups/page.tsx
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { PriceGroupTable } from "./data-table";
+import { PriceGroupTable } from "./components/data-table";
 
 export default async function PriceGroupsPage() {
   const supabase = await createClient();

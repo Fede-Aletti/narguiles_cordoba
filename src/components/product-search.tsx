@@ -16,7 +16,7 @@ export function ProductSearch({ value, onChange }: ProductSearchProps) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input
           type="text"
-          placeholder="Search products..."
+          placeholder="Buscar productos..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="pl-10 pr-10 bg-gray-900 border-gray-800 text-white focus:border-gold-500 focus:ring-gold-500/20"

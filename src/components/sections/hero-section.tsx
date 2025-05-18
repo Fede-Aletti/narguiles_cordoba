@@ -4,8 +4,10 @@ import { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { LOGO_URL } from "@/lib/constants";
+import { useRouter } from "next/navigation";
 
 export function HeroSection() {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -81,8 +83,9 @@ export function HeroSection() {
               className="bg-primary hover:bg-primary/80 text-primary-foreground"
               aria-label="Comprar la colección"
               tabIndex={0}
+              onClick={() => router.push("/tienda")}
             >
-              Comprar Colección
+              Ver productos
             </Button>
             <Button
               variant="outline"
@@ -90,8 +93,9 @@ export function HeroSection() {
               className="border-white text-white bg-white/10"
               aria-label="Leer nuestra historia"
               tabIndex={0}
+              onClick={() => router.push("/eventos")}
             >
-              Nuestra Historia
+              Eventos
             </Button>
           </div>
         </div>

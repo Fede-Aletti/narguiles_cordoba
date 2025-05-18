@@ -39,11 +39,35 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Para rutas /admin: redirigir a login si no hay usuario
-  if (!user && request.nextUrl.pathname.startsWith("/admin")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+  // Para rutas /admin
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    // Si no hay usuario, redirigir a login
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    } 
+    
+    // Si hay usuario, verificar su rol
+    const { data: userProfile } = await supabase
+      .from("user")
+      .select("role")
+      .eq("auth_user_id", user.id)
+      .single();
+    
+    // Si el usuario es client o no tiene perfil, redirigir a página no autorizada
+    if (!userProfile || userProfile.role === 'client') {
+      const url = request.nextUrl.clone();
+      url.pathname = "/unauthorized"; // O a cualquier otra página de acceso denegado
+      return NextResponse.redirect(url);
+    }
+    
+    // Si es admin, superadmin o marketing y está en la raíz de admin, redirigir al dashboard
+    if (request.nextUrl.pathname === "/admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   // Para rutas /shop: puedes decidir si requieren autenticación o no

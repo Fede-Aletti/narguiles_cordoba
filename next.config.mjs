@@ -8,6 +8,16 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**', // Acepta cualquier hostname
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Acepta cualquier hostname
+      }
+    ],
   },
 }
 
