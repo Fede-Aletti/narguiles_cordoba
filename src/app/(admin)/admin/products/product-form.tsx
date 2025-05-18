@@ -23,21 +23,24 @@ import {
 } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner"; // o from 'react-hot-toast'
-import { createProductAction } from "@/actions/product-actions";
+import { createProductAction, updateProductAction } from "@/actions/product-actions";
 import {
   fetchCategoriesForSelect,
   fetchBrandsForSelect,
   fetchPriceGroupsForSelect,
+  useProductMediaQuery,
 } from "@/lib/queries/product-queries";
 import {
   PRODUCT_STATUS_OPTIONS,
   PRODUCT_STATUS_VALUES,
   ProductStatus,
 } from "@/interfaces/enums"; // Import PRODUCT_STATUS_OPTIONS
-import type { ProductFormData } from "@/types/product";
+import type { Media, ProductFormData } from "@/types/product";
 import { useEffect, useState } from "react";
 import { MediaGalleryPicker } from './media-gallery-picker';
 import Image from 'next/image';
+import { X } from 'lucide-react';
+
 
 // Definir PRODUCT_STATUS_OPTIONS en enums.ts o aquí
 // export const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
@@ -46,40 +49,22 @@ import Image from 'next/image';
 //   { value: 'running_low', label: 'Poco Stock' },
 // ];
 
-const productFormSchema = z
-  .object({
-    name: z
-      .string()
-      .min(3, { message: "El nombre debe tener al menos 3 caracteres." }),
-    slug: z.string().optional(), // El slug se puede autogenerar si se deja vacío
-    stock: z.coerce
-      .number()
-      .int()
-      .min(0, { message: "El stock no puede ser negativo." }),
-    price: z.coerce
-      .number()
-      .positive({ message: "El precio debe ser positivo." })
-      .optional()
-      .nullable(),
-    price_group_id: z.coerce.number().int().positive().optional().nullable(),
-    brand_id: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Selecciona una marca." }),
-    category_id: z.coerce
-      .number()
-      .int()
-      .positive({ message: "Selecciona una categoría." }),
-    status: z.enum(PRODUCT_STATUS_VALUES as [string, ...string[]], {
-      errorMap: () => ({ message: "Selecciona un estado válido." }),
-    }),
-    media_id: z.number().optional().nullable(),
-    media_url: z.string().optional(),
-  })
-  .refine((data) => data.price || data.price_group_id, {
-    message: "Debes especificar un precio o un grupo de precios.",
-    path: ["price"], // O price_group_id, o un path general
-  });
+const productFormSchema = z.object({
+  name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
+  slug: z.string().optional(), 
+  stock: z.coerce.number().int().min(0, { message: 'El stock no puede ser negativo.' }),
+  price: z.coerce.number().positive({ message: 'El precio debe ser positivo.' }).optional().nullable(),
+  price_group_id: z.coerce.number().int().positive().optional().nullable(),
+  brand_id: z.coerce.number().int().positive({ message: 'Selecciona una marca.' }),
+  category_id: z.coerce.number().int().positive({ message: 'Selecciona una categoría.' }),
+  status: z.enum(PRODUCT_STATUS_VALUES as [string, ...string[]], {
+    errorMap: () => ({ message: "Selecciona un estado válido." })
+  }),
+  selectedMediaIds: z.array(z.number()).optional(),
+}).refine(data => data.price || data.price_group_id, {
+  message: "Debes especificar un precio o un grupo de precios.",
+  path: ["price"], 
+});
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
@@ -91,17 +76,44 @@ interface ProductFormProps {
 
 export function ProductForm({ setOpen, productData, isEditing = false }: ProductFormProps) {
   const queryClient = useQueryClient();
+  const [selectedMedia, setSelectedMedia] = useState<Media[]>([]);
+
+  const { data: productMedia } = useProductMediaQuery(productData?.id);
+
+  useEffect(() => {
+    if (productMedia && productMedia.length > 0) {
+      setSelectedMedia(productMedia as unknown as Media[]);
+      form.setValue(
+        'selectedMediaIds', 
+        productMedia.map(m => typeof m === 'object' && m !== null && 'id' in m ? m.id : null)
+          .filter(Boolean) as number[]
+      );
+    }
+  }, [productMedia]);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: {
-      name: "",
-      slug: "",
-      stock: 0,
-      price: undefined,
-      price_group_id: undefined,
-      status: PRODUCT_STATUS_VALUES[0],
-    },
+    defaultValues: isEditing && productData 
+      ? {
+          name: productData.name,
+          slug: productData.slug,
+          stock: productData.stock,
+          price: productData.price,
+          price_group_id: productData.price_group_id,
+          brand_id: productData.brand_id,
+          category_id: productData.category_id,
+          status: productData.status,
+          selectedMediaIds: [],
+        }
+      : {
+          name: '',
+          slug: '',
+          stock: 0,
+          price: undefined,
+          price_group_id: undefined,
+          status: PRODUCT_STATUS_VALUES[0],
+          selectedMediaIds: [],
+        }
   });
 
   const { data: categories, isLoading: isLoadingCategories } = useQuery({
@@ -132,50 +144,63 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
     }
   }, [selectedPriceGroupId, priceGroups, form]);
 
-  const mutation = useMutation({
+  const handleSelectMedia = (media: Media, isMultiple = false) => {
+    if (isMultiple) {
+      if (selectedMedia.some(m => m.id === media.id)) {
+        const filtered = selectedMedia.filter(m => m.id !== media.id);
+        setSelectedMedia(filtered);
+        form.setValue('selectedMediaIds', filtered.map(m => m.id));
+      } else {
+        const newSelection = [...selectedMedia, media];
+        setSelectedMedia(newSelection);
+        form.setValue('selectedMediaIds', newSelection.map(m => m.id));
+      }
+    } else {
+      setSelectedMedia([media]);
+      form.setValue('selectedMediaIds', [media.id]);
+    }
+  };
+
+  const createMutation = useMutation({
     mutationFn: createProductAction,
     onSuccess: (data) => {
-      if (data.success) {
-        toast.success(data.message);
-        queryClient.invalidateQueries({ queryKey: ["products"] }); // Invalida la cache de productos
-        setOpen(false); // Cierra el diálogo
-        form.reset();
-      } else {
-        toast.error(data.message);
-      }
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setOpen(false);
+      form.reset();
     },
-    onError: (error) => {
-      toast.error(`Error inesperado: ${error.message}`);
+    onError: (error: any) => {
+      toast.error(`Error: ${error.message}`);
     },
   });
 
-  function onSubmit(values: ProductFormValues) {
-    // Asegurarse que los campos opcionales que son números se envíen como null si están vacíos
-    const payload: ProductFormData = {
-      ...values,
-      price: values.price || null,
-      price_group_id: values.price_group_id || null,
-      slug: values.slug || "",
-      status: values.status as ProductStatus,
-    };
-    mutation.mutate(payload);
+  const updateMutation = useMutation({
+    mutationFn: (data: typeof form.getValues) => {
+      if (!productData?.id) throw new Error('ID de producto no encontrado');
+      return updateProductAction(productData.id, data as unknown as ProductFormData);
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-media', productData?.id] });
+      setOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
+  function onSubmit(values: typeof form.getValues) {
+    if (isEditing) {
+      updateMutation.mutate(values);
+    } else {
+      createMutation.mutate(values as unknown as ProductFormData);
+    }
   }
-
-  // Estado para manejar la URL de la imagen seleccionada
-  const [selectedMediaUrl, setSelectedMediaUrl] = useState<string | undefined>(
-    isEditing && productData?.media_url ? productData.media_url : undefined
-  );
   
-  // Manejar la selección de imagen
-  const handleSelectMedia = (media: { id: number; url: string; alt?: string }) => {
-    form.setValue('media_id', media.id);
-    form.setValue('media_url', media.url);
-    setSelectedMediaUrl(media.url);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -317,7 +342,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                     step="0.01"
                     placeholder="0.00"
                     {...field}
-                    value={field.value ?? ""} // Controlar el valor para que sea string vacío si es null/undefined
+                    value={field.value ?? ""}
                     onChange={(e) =>
                       field.onChange(
                         e.target.value === ""
@@ -325,7 +350,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                           : parseFloat(e.target.value)
                       )
                     }
-                    disabled={!!selectedPriceGroupId} // Deshabilitar si hay un grupo de precios seleccionado
+                    disabled={!!selectedPriceGroupId}
                     aria-describedby="price-message"
                   />
                 </FormControl>
@@ -342,7 +367,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
             <FormItem>
               <FormLabel>Categoría</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(parseInt(value))} // Convertir a número
+                onValueChange={(value) => field.onChange(parseInt(value))}
                 defaultValue={field.value?.toString()}
                 disabled={isLoadingCategories}
               >
@@ -380,7 +405,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
             <FormItem>
               <FormLabel>Marca</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(parseInt(value))} // Convertir a número
+                onValueChange={(value) => field.onChange(parseInt(value))}
                 defaultValue={field.value?.toString()}
                 disabled={isLoadingBrands}
               >
@@ -406,44 +431,44 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="media_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Imagen del Producto</FormLabel>
-              <div className="flex items-center gap-4">
-                <FormControl>
-                  <Input 
-                    {...form.register('media_url')}
-                    placeholder="URL de la imagen" 
-                    value={form.watch('media_url') || ''}
-                    onChange={(e) => form.setValue('media_url', e.target.value)}
-                  />
-                </FormControl>
-                <MediaGalleryPicker
-                  onSelectMedia={handleSelectMedia}
-                  selectedUrl={selectedMediaUrl}
-                />
-              </div>
-              {selectedMediaUrl && (
-                <div className="mt-2 relative w-full h-40 rounded-md overflow-hidden border">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">Imágenes del producto</h3>
+            <MediaGalleryPicker 
+              onSelectMedia={(media) => handleSelectMedia(media, true)} 
+              selectedMediaIds={selectedMedia.map(m => m.id)}
+              multiSelect={true}
+            />
+          </div>
+          
+          {selectedMedia.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+              {selectedMedia.map(media => (
+                <div key={media.id} className="relative group aspect-square border rounded-md overflow-hidden">
                   <Image
-                    src={selectedMediaUrl}
-                    alt="Preview"
+                    src={media.url}
+                    alt={media.alt || "Imagen del producto"}
                     fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 300px"
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 33vw"
                   />
+                  <button
+                    type="button"
+                    onClick={() => handleSelectMedia(media, true)}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                  >
+                    <X className="h-6 w-6 text-white" />
+                  </button>
                 </div>
-              )}
-              <FormMessage />
-            </FormItem>
+              ))}
+            </div>
           )}
-        />
+        </div>
 
-        <Button type="submit" disabled={mutation.isPending} className="w-full">
-          {mutation.isPending ? "Creando Producto..." : "Crear Producto"}
+        <Button type="submit" className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
+          {createMutation.isPending || updateMutation.isPending
+            ? isEditing ? "Actualizando..." : "Creando..."
+            : isEditing ? "Actualizar Producto" : "Crear Producto"}
         </Button>
       </form>
     </Form>

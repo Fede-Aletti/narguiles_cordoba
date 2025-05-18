@@ -10,12 +10,12 @@ import { ProductTabs } from "../product/product-tabs";
 import { RelatedProducts } from "../product/related-products";
 
 interface ProductDetailProps {
-  productId: number;
+  slug: string;
 }
 
-export function ProductDetail({ productId }: ProductDetailProps) {
+export function ProductDetail({ slug }: ProductDetailProps) {
   const { products } = useStore();
-  const product = products.find((p) => p.id === productId);
+  const product = products.find((p) => p.slug === slug);
 
   if (!product) {
     notFound();

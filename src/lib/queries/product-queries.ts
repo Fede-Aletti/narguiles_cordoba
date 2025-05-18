@@ -1,34 +1,24 @@
 import { createClient } from '@/utils/supabase/client' // Cliente para el lado del cliente
 import type { ProductRow } from '@/types/product'
+import { useQuery } from '@tanstack/react-query'
 
 export async function fetchProducts(): Promise<ProductRow[]> {
   const supabase = createClient()
+  
   const { data, error } = await supabase
     .from('product')
     .select(`
-      id,
-      name,
-      slug,
-      stock,
-      price,
-      status,
-      category:category_id (name),
-      brand:brand_id (name),
-      price_group:price_group_id (name),
-      created_at,
-      updated_at
+      *,
+      category(id, name),
+      brand(id, name),
+      price_group(id, name, price),
+      product_media(id, media_id, media(id, url, alt))
     `)
-    .is('deleted_at', null) // Siguiendo database-handling.mdc
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching products:', error)
-    throw new Error(error.message)
-  }
+    .is('deleted_at', null)
+    .order('id', { ascending: false })
   
-  // Asegurarse de que el tipo devuelto coincida con ProductRow
-  // Supabase debería devolver los objetos anidados directamente
-  return data as unknown as ProductRow[]
+  if (error) throw error
+  return data || []
 }
 
 // Funciones para obtener datos para los Selects del formulario
@@ -63,4 +53,22 @@ export async function fetchPriceGroupsForSelect() {
     .order('name', { ascending: true })
   if (error) throw new Error(error.message)
   return data
-} 
+}
+
+export const useProductMediaQuery = (productId?: number) => {
+  return useQuery({
+    queryKey: ['product-media', productId],
+    queryFn: async () => {
+      if (!productId) return [];
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('product_media')
+        .select('media_id, media:media_id(id, url, alt)')
+        .eq('product_id', productId);
+      
+      if (error) throw error;
+      return data?.map(item => item.media) || [];
+    },
+    enabled: !!productId,
+  });
+}; 
