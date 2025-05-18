@@ -19,7 +19,6 @@ export const metadata = {
     "Narguilas Córdoba, tu tienda de narguilas y accesorios de shisha.",
 };
 
-
 export default function RootLayout({
   children,
 }: {

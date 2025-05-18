@@ -71,19 +71,29 @@ export const useStore = create<StoreState>((set) => ({
 
   addToCart: (product) =>
     set((state) => {
-      const existingItem = state.cartItems.find((item) => item.product.id === product.id)
+      // Convert product from ShopProduct to the simpler Product type if needed
+      const storeProduct = {
+        id: product.id,
+        name: product.name,
+        description: product.description || "",
+        price: product.price || 0,
+        category: product.category?.name || "unknown",
+        // Add any other fields needed
+      };
+      
+      const existingItem = state.cartItems.find((item) => item.product.id === product.id);
 
       if (existingItem) {
         return {
           cartItems: state.cartItems.map((item) =>
             item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
           ),
-        }
+        };
       }
 
       return {
-        cartItems: [...state.cartItems, { product, quantity: 1 }],
-      }
+        cartItems: [...state.cartItems, { product: storeProduct, quantity: 1 }],
+      };
     }),
 
   removeFromCart: (productId) =>

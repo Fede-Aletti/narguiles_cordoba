@@ -1,16 +1,17 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
-import { useStore, type Product } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Heart, ShoppingCart, Star, Truck, Shield, Award } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ShopProduct } from "@/lib/queries/shop-queries";
+import { ProductStatus } from "@/interfaces/enums";
 
 interface ProductInfoProps {
-  product: Product;
+  product: ShopProduct;
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {
@@ -24,16 +25,19 @@ export function ProductInfo({ product }: ProductInfoProps) {
   );
   const [isFavorite, setIsFavorite] = useState(false);
 
+  // Get category name
+  const categoryName = product.category?.name || "";
+
   // Mock colors and sizes based on product type
   const colors =
-    product.category === "hookahs"
+    categoryName.toLowerCase().includes("hookah")
       ? ["Black", "Gold", "Silver", "Rose Gold"]
-      : product.category === "accessories"
+      : categoryName.toLowerCase().includes("accessor")
       ? ["Black", "Gold", "Silver"]
       : [];
 
   const sizes =
-    product.category === "hookahs" ? ["Small", "Medium", "Large"] : [];
+    categoryName.toLowerCase().includes("hookah") ? ["Small", "Medium", "Large"] : [];
 
   const handleAddToCart = () => {
     addToCart({
@@ -51,13 +55,20 @@ export function ProductInfo({ product }: ProductInfoProps) {
     }
   };
 
+  // Status label
+  const statusDisplay = {
+    'in_stock': 'En Stock',
+    'out_of_stock': 'Agotado',
+    'running_low': 'Poco Stock'
+  }[product.status as ProductStatus] || '';
+
   return (
     <div className="space-y-6">
       {/* Product Title and Badges */}
       <div>
-        {product.new && (
-          <Badge className="mb-2 bg-gold-500 text-black hover:bg-gold-600">
-            New Arrival
+        {product.status === 'running_low' && (
+          <Badge className="mb-2 bg-yellow-500 text-black hover:bg-yellow-600">
+            ¡Últimas unidades!
           </Badge>
         )}
         <h1 className="font-serif text-3xl font-bold text-white md:text-4xl">
@@ -65,28 +76,20 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </h1>
       </div>
 
-      {/* Price and Rating */}
+      {/* Price and Brand */}
       <div className="flex items-center justify-between">
         <div className="text-3xl font-bold text-gold-400">
-          ${product.price.toFixed(2)}
+          ${product.price?.toFixed(2) || "N/A"}
         </div>
-        <div className="flex items-center">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`h-5 w-5 ${
-                  star <= 4 ? "fill-gold-500 text-gold-500" : "text-gray-600"
-                }`}
-              />
-            ))}
+        {product.brand && (
+          <div className="text-gray-400">
+            Marca: <span className="text-white">{product.brand.name}</span>
           </div>
-          <span className="ml-2 text-sm text-gray-400">(24 reviews)</span>
-        </div>
+        )}
       </div>
 
       {/* Description */}
-      <p className="text-gray-400">{product.description}</p>
+      <p className="text-gray-400">{product.description || "Sin descripción disponible"}</p>
 
       {/* Color Selection */}
       {colors.length > 0 && (
@@ -127,7 +130,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* Size Selection */}
       {sizes.length > 0 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium text-white">Size</label>
+          <label className="text-sm font-medium text-white">Tamaño</label>
           <div className="flex space-x-3">
             {sizes.map((size) => (
               <button
@@ -146,23 +149,43 @@ export function ProductInfo({ product }: ProductInfoProps) {
         </div>
       )}
 
+      {/* Stock Status */}
+      <div className="text-sm">
+        <span className="font-medium text-white">Estado: </span>
+        <span className={`
+          ${product.status === 'in_stock' ? 'text-green-500' : 
+            product.status === 'running_low' ? 'text-yellow-500' : 
+            'text-red-500'}
+        `}>
+          {statusDisplay}
+        </span>
+        {product.stock > 0 && (
+          <span className="ml-2 text-gray-400">
+            ({product.stock} {product.stock === 1 ? 'unidad' : 'unidades'} disponibles)
+          </span>
+        )}
+      </div>
+
       {/* Quantity and Add to Cart */}
       <div className="flex flex-col space-y-4 pt-4 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
         <div className="w-full max-w-[120px]">
           <Input
             type="number"
             min="1"
+            max={product.stock || 1}
             value={quantity}
             onChange={handleQuantityChange}
             className="bg-gray-900 border-gray-700 text-white"
+            disabled={product.status === 'out_of_stock'}
           />
         </div>
         <Button
           className="flex-1 bg-gold-500 text-black hover:bg-gold-600"
           onClick={handleAddToCart}
+          disabled={product.status === 'out_of_stock'}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Add to Cart
+          {product.status === 'out_of_stock' ? 'Agotado' : 'Añadir al Carrito'}
         </Button>
         <Button
           variant="outline"
@@ -173,7 +196,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           onClick={() => setIsFavorite(!isFavorite)}
         >
           <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500" : ""}`} />
-          <span className="sr-only">Add to wishlist</span>
+          <span className="sr-only">Añadir a favoritos</span>
         </Button>
       </div>
 
@@ -182,16 +205,16 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <div className="flex items-center space-x-3">
           <Truck className="h-5 w-5 text-gold-400" />
           <div>
-            <p className="text-sm font-medium text-white">Free Shipping</p>
-            <p className="text-xs text-gray-400">On orders over $100</p>
+            <p className="text-sm font-medium text-white">Envío Gratis</p>
+            <p className="text-xs text-gray-400">En compras superiores a $100</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
           <Shield className="h-5 w-5 text-gold-400" />
           <div>
-            <p className="text-sm font-medium text-white">2-Year Warranty</p>
+            <p className="text-sm font-medium text-white">Garantía de 2 años</p>
             <p className="text-xs text-gray-400">
-              Full coverage for peace of mind
+              Cobertura completa para tu tranquilidad
             </p>
           </div>
         </div>
@@ -199,9 +222,9 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <Award className="h-5 w-5 text-gold-400" />
           <div>
             <p className="text-sm font-medium text-white">
-              Authenticity Guaranteed
+              Autenticidad Garantizada
             </p>
-            <p className="text-xs text-gray-400">100% genuine products</p>
+            <p className="text-xs text-gray-400">100% productos originales</p>
           </div>
         </div>
       </div>
@@ -215,15 +238,13 @@ export function ProductInfo({ product }: ProductInfoProps) {
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Category:</span>
-          <span className="text-gray-400 capitalize">{product.category}</span>
+          <span className="text-gray-500">Categoría:</span>
+          <span className="text-gray-400 capitalize">{product.category?.name || "Sin categoría"}</span>
         </div>
-        {product.material && (
-          <div className="flex justify-between">
-            <span className="text-gray-500">Material:</span>
-            <span className="text-gray-400 capitalize">{product.material}</span>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <span className="text-gray-500">Marca:</span>
+          <span className="text-gray-400 capitalize">{product.brand?.name || "Sin marca"}</span>
+        </div>
       </div>
     </div>
   );

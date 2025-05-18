@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 
 interface ProductPageProps {
   params: {
-    productId: string
+    slug: string
   }
 }
 

@@ -89,3 +89,34 @@ export async function deactivateUser(id: number) {
   if (error) throw new Error(error.message);
   return data;
 }
+
+// Function to ensure user exists in the public.user table
+export async function ensureUserExists(): Promise<void> {
+  const supabase = createClient();
+  
+  // First check if user record exists
+  const { data: session } = await supabase.auth.getSession();
+  if (!session?.session?.user) return;
+  
+  const { data: user, error: fetchError } = await supabase
+    .from('user')
+    .select('id')
+    .eq('auth_user_id', session.session.user.id)
+    .single();
+    
+  // If user doesn't exist in public.user table, create it
+  if (fetchError && !user) {
+    // Get user details from auth
+    const { data: authUser } = await supabase.auth.getUser();
+    if (!authUser?.user) return;
+    
+    // Create user record
+    await supabase
+      .from('user')
+      .insert({
+        auth_user_id: authUser.user.id,
+        // You can set defaults for other fields here
+        role: 'client' // Default role
+      });
+  }
+}
