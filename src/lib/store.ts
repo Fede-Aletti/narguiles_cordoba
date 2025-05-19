@@ -20,10 +20,14 @@ type CartItem = {
 type StoreState = {
   products: Product[];
   cartItems: CartItem[];
+  favoriteProductIds: number[];
   addToCart: (product: any, quantity?: number) => void;
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
+  setFavoriteIds: (ids: number[]) => void;
+  addFavoriteIdToStore: (id: number) => void;
+  removeFavoriteIdFromStore: (id: number) => void;
 };
 
 export const useStore = create<StoreState>()(
@@ -31,12 +35,13 @@ export const useStore = create<StoreState>()(
     (set) => ({
       products: [],
       cartItems: [],
+      favoriteProductIds: [],
 
       addToCart: (product, quantity = 1) =>
         set((state) => {
           const mainImage =
             product.image ||
-            (product.product_media && product.product_media[0]?.media?.url) ||
+            (product.media && product.media[0]?.url) ||
             "/placeholder.svg";
           const storeProduct: Product = {
             id: product.id,
@@ -96,6 +101,20 @@ export const useStore = create<StoreState>()(
         })),
 
       clearCart: () => set({ cartItems: [] }),
+
+      setFavoriteIds: (ids) => set({ favoriteProductIds: ids }),
+      
+      addFavoriteIdToStore: (id) => 
+        set((state) => ({
+          favoriteProductIds: state.favoriteProductIds.includes(id) 
+            ? state.favoriteProductIds 
+            : [...state.favoriteProductIds, id],
+        })),
+
+      removeFavoriteIdFromStore: (id) => 
+        set((state) => ({
+          favoriteProductIds: state.favoriteProductIds.filter((favId) => favId !== id),
+        })),
     }),
     {
       name: 'cart-storage',

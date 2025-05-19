@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useCreateOrder } from '@/lib/queries/order-queries';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 interface CartSummaryProps {
   cartItems: any[];
@@ -13,9 +12,7 @@ export function CartSummary({ cartItems, selectedAddressId }: CartSummaryProps) 
   const total = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const { mutate: createOrder, status, error } = useCreateOrder();
   const isLoading = status === "pending";
-  const isSuccess = status === "success";
   const isError = status === "error";
-  const [orderId, setOrderId] = useState<number | null>(null);
   const router = useRouter();
 
   const handleConfirm = () => {
@@ -24,7 +21,6 @@ export function CartSummary({ cartItems, selectedAddressId }: CartSummaryProps) 
       { addressId: selectedAddressId, cartItems },
       {
         onSuccess: (order) => {
-          setOrderId(order.id);
           router.push('/pedidos');
         },
       }

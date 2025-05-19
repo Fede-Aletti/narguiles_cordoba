@@ -1,4 +1,3 @@
-
 import { ProductDetail } from "@/components/pages/product-detail"
 import { notFound } from "next/navigation"
 
@@ -8,9 +7,7 @@ interface ProductPageProps {
   }
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-  // In a real app, you would fetch the product data from an API or database
-  // For now, we'll use a placeholder to demonstrate the UI
+export default async function ProductPage({ params }: ProductPageProps) {
   const slug = params.slug
 
   if (slug === undefined) {

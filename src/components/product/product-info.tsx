@@ -1,21 +1,29 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, ShoppingCart, Star, Truck, Shield, Award } from "lucide-react";
+import { Heart, ShoppingCart, Star, Truck, Shield, Award, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ShopProduct } from "@/lib/queries/shop-queries";
 import { ProductStatus } from "@/interfaces/enums";
+import { useUserFavoriteProductIds, useToggleFavorite, useProductFavoriteCount } from "@/lib/queries/favorite-queries";
+import { useRouter, usePathname } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 interface ProductInfoProps {
   product: ShopProduct;
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {
-  const { addToCart } = useStore();
+  const addToCartFromStore = useStore((state) => state.addToCart);
+  const favoriteProductIds = useStore((state) => state.favoriteProductIds);
+  const router = useRouter();
+  const pathname = usePathname();
+  
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
     undefined
@@ -23,12 +31,19 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     undefined
   );
-  const [isFavorite, setIsFavorite] = useState(false);
 
-  // Get category name
+  useUserFavoriteProductIds(); 
+  
+  const { mutate: toggleFavoriteMutation, status: toggleFavoriteStatus } = useToggleFavorite();
+  const isTogglingFavorite = toggleFavoriteStatus === 'pending';
+
+  const isFavorite = favoriteProductIds.includes(product.id);
+  
+  const { data: serverFavoriteCount, isLoading: isLoadingCount } = useProductFavoriteCount(product.id);
+  const displayFavoriteCount = product.favoriteCount ?? serverFavoriteCount ?? 0;
+
   const categoryName = product.category?.name || "";
 
-  // Mock colors and sizes based on product type
   const colors =
     categoryName.toLowerCase().includes("hookah")
       ? ["Black", "Gold", "Silver", "Rose Gold"]
@@ -39,28 +54,48 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const sizes =
     categoryName.toLowerCase().includes("hookah") ? ["Small", "Medium", "Large"] : [];
 
-  const handleAddToCart = () => {
-    addToCart({
-      ...product,
-      // In a real app, you might want to include the selected options
-      // color: selectedColor,
-      // size: selectedSize,
-    });
+  const handleActualAddToCart = () => {
+    addToCartFromStore(product, quantity);
+    toast.success(`${product.name} (x${quantity}) añadido al carrito!`);
+  };
+
+  const handleAddToCartClick = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Debes iniciar sesión para añadir al carrito.");
+      router.push(`/login?returnTo=${pathname}`);
+    } else {
+      handleActualAddToCart();
+    }
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number.parseInt(e.target.value);
+    const maxStock = product.stock || 1;
     if (!isNaN(value) && value > 0) {
-      setQuantity(value);
+      setQuantity(Math.min(value, maxStock));
+    } else if (e.target.value === "") {
+      setQuantity(1);
     }
   };
 
-  // Status label
   const statusDisplay = {
     'in_stock': 'En Stock',
     'out_of_stock': 'Agotado',
     'running_low': 'Poco Stock'
   }[product.status as ProductStatus] || '';
+
+  const handleToggleFavoriteClick = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Debes iniciar sesión para gestionar favoritos.");
+      router.push(`/login?returnTo=${pathname}`);
+    } else {
+      toggleFavoriteMutation({ productId: product.id, isCurrentlyFavorite: isFavorite });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -74,6 +109,12 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <h1 className="font-serif text-3xl font-bold text-white md:text-4xl">
           {product.name}
         </h1>
+        {!isLoadingCount && displayFavoriteCount > 0 && (
+          <div className="mt-2 flex items-center text-sm text-gray-400">
+            <ThumbsUp className="mr-1.5 h-4 w-4 text-gold-400" />
+            A {displayFavoriteCount} {displayFavoriteCount === 1 ? "persona le gusta" : "personas les gusta"} esto
+          </div>
+        )}
       </div>
 
       {/* Price and Brand */}
@@ -159,7 +200,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         `}>
           {statusDisplay}
         </span>
-        {product.stock > 0 && (
+        {product.stock != null && product.stock >= 0 && (
           <span className="ml-2 text-gray-400">
             ({product.stock} {product.stock === 1 ? 'unidad' : 'unidades'} disponibles)
           </span>
@@ -176,27 +217,27 @@ export function ProductInfo({ product }: ProductInfoProps) {
             value={quantity}
             onChange={handleQuantityChange}
             className="bg-gray-900 border-gray-700 text-white"
-            disabled={product.status === 'out_of_stock'}
+            disabled={product.status === 'out_of_stock' || product.stock === 0}
           />
         </div>
         <Button
           className="flex-1 bg-gold-500 text-black hover:bg-gold-600"
-          onClick={handleAddToCart}
-          disabled={product.status === 'out_of_stock'}
+          onClick={handleAddToCartClick}
+          disabled={product.status === 'out_of_stock' || product.stock === 0}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
-          {product.status === 'out_of_stock' ? 'Agotado' : 'Añadir al Carrito'}
+          {product.status === 'out_of_stock' || product.stock === 0 ? 'Agotado' : 'Añadir al Carrito'}
         </Button>
         <Button
           variant="outline"
           size="icon"
-          className={`border-gray-700 ${
-            isFavorite ? "text-red-500" : "text-gray-400"
-          } hover:border-gray-600`}
-          onClick={() => setIsFavorite(!isFavorite)}
+          className={`border-gray-700 ${isFavorite ? "text-red-500 hover:text-red-600 hover:border-red-600" : "text-gray-400 hover:text-white hover:border-gray-500"} ${isTogglingFavorite ? 'animate-pulse' : ''}`}
+          onClick={handleToggleFavoriteClick}
+          disabled={isTogglingFavorite}
+          aria-label={isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
         >
           <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-500" : ""}`} />
-          <span className="sr-only">Añadir a favoritos</span>
+          <span className="sr-only">{isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}</span>
         </Button>
       </div>
 

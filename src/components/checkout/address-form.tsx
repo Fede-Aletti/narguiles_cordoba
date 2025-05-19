@@ -1,12 +1,23 @@
+"use client"; // Ensure it's a client component
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCreateAddress } from "@/lib/queries/address-queries"; // Use the hook
+import { toast } from "sonner";
 
-import { createClient } from "@/utils/supabase/client";
-import { createAddress } from "@/lib/queries/address-queries";
+// The form fields match Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'deleted_at'>
+interface AddressFormData {
+  street: string;
+  street_number: string;
+  province: string;
+  city: string;
+  postal_code: string;
+  phone_number: string;
+}
 
 export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<AddressFormData>({
     street: "",
     street_number: "",
     province: "",
@@ -14,27 +25,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
     postal_code: "",
     phone_number: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
-
-  // Obtener el user_id del usuario autenticado
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: userProfile } = await supabase
-        .from("user")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-      setUserId(userProfile?.id ?? null);
-    };
-    fetchUserId();
-  }, []);
+  
+  const { mutateAsync: createAddress, status } = useCreateAddress();
+  const isLoading = status === 'pending';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -42,16 +35,17 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
     try {
-      if (!userId) throw new Error("No se pudo obtener el usuario");
-      await createAddress({ ...form, user_id: userId });
-      onSuccess();
+      await createAddress(form);
+      toast.success("Dirección guardada exitosamente!");
+      onSuccess(); // Call onSuccess to, for example, hide the form
+      // Optionally reset form fields
+      setForm({
+        street: "", street_number: "", province: "", city: "",
+        postal_code: "", phone_number: "",
+      });
     } catch (err: any) {
-      setError("Error al guardar la dirección");
-    } finally {
-      setLoading(false);
+      toast.error(err.message || "Error al guardar la dirección");
     }
   };
 
@@ -63,6 +57,7 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.street}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
       <Input
         name="street_number"
@@ -70,6 +65,7 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.street_number}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
       <Input
         name="province"
@@ -77,6 +73,7 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.province}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
       <Input
         name="city"
@@ -84,6 +81,7 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.city}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
       <Input
         name="postal_code"
@@ -91,6 +89,7 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.postal_code}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
       <Input
         name="phone_number"
@@ -98,16 +97,15 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
         value={form.phone_number}
         onChange={handleChange}
         required
+        className="bg-gray-800 border-gray-700 focus:border-gold-400 text-white"
       />
-      {error && <div className="text-red-500 text-sm">{error}</div>}
       <Button
         type="submit"
         className="w-full bg-gold-500 hover:bg-gold-600 text-black"
-        disabled={loading || !userId}
+        disabled={isLoading}
       >
-        {loading ? "Guardando..." : "Guardar dirección"}
+        {isLoading ? "Guardando..." : "Guardar dirección"}
       </Button>
-      {error && <div className="text-red-500 text-sm">{error}</div>}
     </form>
   );
 }

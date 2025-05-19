@@ -1,42 +1,23 @@
-import { login, signup } from "@/actions/login-action";
+"use client";
+
+import { AuthForm } from "@/components/auth/auth-form";
+import Link from "next/link";
+import Image from "next/image";
+import { LOGO_URL } from "@/lib/constants"; // Assuming LOGO_URL is available
 
 export default function LoginPage() {
   return (
-    <form className="flex flex-col gap-4 items-center justify-center h-screen bg-black text-white">
-      <div className="flex flex-col gap-4 min-w-96">
-        <label htmlFor="email" className="text-white">
-          Email:
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          className="bg-white text-black px-4 py-2 rounded-md"
-        />
-        <label htmlFor="password" className="text-white">
-          Password:
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          className="bg-white text-black px-4 py-2 rounded-md"
-        />
-        <button
-          formAction={login}
-          className="bg-white/75 text-black px-4 py-2 rounded-md hover:bg-white transition-all duration-300"
-        >
-          Log in
-        </button>
-        <button
-          formAction={signup}
-          className="bg-white/75 text-black px-4 py-2 rounded-md hover:bg-white transition-all duration-300"
-        >
-          Sign up
-        </button>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+      
+        <Link href="/" className="flex items-center gap-2 text-white hover:text-gold-400 transition-colors">
+          <Image src={LOGO_URL} alt="Logo" width={200} height={200} />
+        </Link>
+      <div className="w-full max-w-md bg-gray-900 p-8 rounded-lg shadow-xl">
+        <AuthForm />
       </div>
-    </form>
+      <p className="mt-8 text-gray-400 text-sm">
+        Explora nuestra tienda de <Link href="/tienda" className="text-gold-400 hover:underline">productos premium</Link>.
+      </p>
+    </div>
   );
-}
+} 

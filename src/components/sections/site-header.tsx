@@ -25,7 +25,7 @@ import { CartSheet } from "./cart-sheet"
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { cartItems } = useStore()
+  const cartItems = useStore((state) => state.cartItems)
   const isMobile = useMobile()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)

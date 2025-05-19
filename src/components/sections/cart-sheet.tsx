@@ -6,7 +6,11 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export function CartSheet() {
-  const { cartItems, updateQuantity, removeFromCart, clearCart } = useStore();
+  const cartItems = useStore((state) => state.cartItems);
+  const updateQuantity = useStore((state) => state.updateQuantity);
+  const removeFromCart = useStore((state) => state.removeFromCart);
+  const clearCart = useStore((state) => state.clearCart);
+
   const total = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
