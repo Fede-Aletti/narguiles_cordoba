@@ -3,7 +3,7 @@ import { ContactInfo } from "@/components/pages/contact/contact-info";
 import { ContactMap } from "@/components/pages/contact/contact-map";
 
 export const metadata = {
-  title: "Contacto | Luxury Hookah",
+  title: "Contacto | Narguilas Córdoba",
   description:
     "Ponte en contacto con nosotros para cualquier consulta sobre nuestros productos o servicios.",
 };
