@@ -241,10 +241,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <span className="text-gray-500">Categoría:</span>
           <span className="text-gray-400 capitalize">{product.category?.name || "Sin categoría"}</span>
         </div>
-        <div className="flex justify-between">
+          <div className="flex justify-between">
           <span className="text-gray-500">Marca:</span>
           <span className="text-gray-400 capitalize">{product.brand?.name || "Sin marca"}</span>
-        </div>
+          </div>
       </div>
     </div>
   );

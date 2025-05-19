@@ -27,7 +27,18 @@ export function ProductsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const isMobile = useMobile()
 
-  // Update filtered products when data or filters change
+  // Initialize filtered products when products load
+  useEffect(() => {
+    if (products.length > 0) {
+      setFilteredProducts(products)
+      
+      // Set initial price range based on actual product prices
+      const maxPrice = Math.max(...products.map(p => p.price || 0)) + 100
+      setPriceRange([0, maxPrice])
+    }
+  }, [products])
+
+  // Apply filters when filter criteria change
   useEffect(() => {
     if (!products.length) return
 
@@ -40,8 +51,8 @@ export function ProductsPage() {
         (product) => 
           product.name.toLowerCase().includes(query) || 
           (product.description && product.description.toLowerCase().includes(query)) ||
-          (product.brand?.name.toLowerCase().includes(query)) ||
-          (product.category?.name.toLowerCase().includes(query))
+          (product.brand?.name?.toLowerCase().includes(query)) ||
+          (product.category?.name?.toLowerCase().includes(query))
       )
     }
 

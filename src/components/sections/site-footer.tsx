@@ -78,7 +78,7 @@ export function SiteFooter() {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-          <p className="text-gray-500 text-sm">&copy; {new Date().getFullYear()} Narguilas Córdoba. Todos los derechos reservados.</p>
+          <p className="text-gray-500 text-sm">&copy; 2025 Narguilas Córdoba. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

@@ -81,7 +81,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Category badge */}
         {product.category && (
-          <Badge className="absolute top-3 left-3 bg-gold-500 text-black hover:bg-gold-600">
+        <Badge className="absolute top-3 left-3 bg-gold-500 text-black hover:bg-gold-600">
             {product.category.name}
           </Badge>
         )}

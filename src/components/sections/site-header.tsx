@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
+import { CartSheet } from "./cart-sheet"
 
 export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -222,15 +223,8 @@ export function SiteHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon" className="text-white hover:text-primary hover:bg-white/10 relative">
-              <ShoppingCart className="h-5 w-5" />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                  {cartItems.length}
-                </span>
-              )}
-              <span className="sr-only">Cart</span>
-            </Button>
+            {/* CartSheet reemplaza el botón de carrito */}
+            <CartSheet />
 
             {isMobile && (
               <Button
