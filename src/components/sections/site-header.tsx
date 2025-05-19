@@ -122,12 +122,15 @@ export function SiteHeader() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="font-serif text-2xl font-bold text-white">
-            <Image src={LOGO_URL} alt="Narguilas Córdoba" width={40} height={40} />
+            <Image src={LOGO_URL} alt="Narguilas Córdoba" width={50} height={50} />
           </Link>
 
           {/* Desktop Navigation */}
           {!isMobile && (
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden md:flex justify-center items-center space-x-8">
+              <Link href="/" className="text-white hover:text-primary transition-colors hover:underline underline-offset-4">
+                Inicio
+              </Link>
               <Link href="/tienda" className="text-white hover:text-primary transition-colors hover:underline underline-offset-4">
                 Tienda
               </Link>
@@ -137,18 +140,14 @@ export function SiteHeader() {
               <Link href="/nosotros" className="text-white hover:text-primary transition-colors hover:underline underline-offset-4">
                 Sobre Nosotros
               </Link>
-              <Link href="/contacto" className="text-white hover:text-primary transition-colors hover:underline underline-offset-4">
+              {/* <Link href="/contacto" className="text-white hover:text-primary transition-colors hover:underline underline-offset-4">
                 Contacto
-              </Link>
+              </Link> */}
             </nav>
           )}
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="text-white hover:text-primary hover:bg-white/10">
-              <Search className="h-5 w-5" />
-              <span className="sr-only">Search</span>
-            </Button>
 
             {/* User dropdown */}
             <DropdownMenu>
@@ -246,32 +245,32 @@ export function SiteHeader() {
         <div className="fixed inset-0 top-16 bg-black z-40 p-4">
           <nav className="flex flex-col space-y-6 pt-8">
             <Link
-              href="/shop"
+              href="/"
               className="text-white text-2xl font-serif hover:text-primary transition-colors hover:underline underline-offset-4"
               onClick={() => setIsMenuOpen(false)}
             >
-              Shop
+              Inicio
             </Link>
             <Link
-              href="/collections"
+              href="/tienda"
               className="text-white text-2xl font-serif hover:text-primary transition-colors hover:underline underline-offset-4"
               onClick={() => setIsMenuOpen(false)}
             >
-              Collections
+              Tienda
             </Link>
             <Link
-              href="/about"
+              href="/eventos"
+              className="text-white text-2xl font-serif hover:text-primary transition-colors hover:underline underline-offset-4"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Eventos
+            </Link>
+            <Link
+              href="/nosotros"
               className="text-white text-2xl font-serif hover:text-primary transition-colors hover:underline underline-offset-4"
               onClick={() => setIsMenuOpen(false)}
             >
               About
-            </Link>
-            <Link
-              href="/contact"
-              className="text-white text-2xl font-serif hover:text-primary transition-colors hover:underline underline-offset-4"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Contact
             </Link>
           </nav>
         </div>

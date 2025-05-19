@@ -1,24 +1,30 @@
-export function AboutHero() {
-    return (
-      <section className="relative h-[60vh] min-h-[400px] w-full overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0 bg-gray-900">
-          <div className="h-full w-full bg-[url('/placeholder.svg?height=1080&width=1920')] bg-cover bg-center opacity-40"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+
+import { FlameIcon } from "lucide-react";
+
+export const NosotrosHero = () => {
+  return (
+    <section className="relative bg-gray-950 py-20 md:py-32">
+      <div className="absolute inset-0 z-0 opacity-30">
+        {/* Optional: Subtle background pattern or image */}
+        {/* <Image src="/path-to-your-subtle-background.jpg" alt="Background" layout="fill" objectFit="cover" /> */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
+      </div>
+      <div className="container relative z-10 mx-auto px-4 text-center">
+        <div className="mb-6 flex justify-center">
+          <FlameIcon className="h-16 w-16 text-gold-400" />
         </div>
-  
-        {/* Hero Content */}
-        <div className="relative z-10 flex h-full items-center justify-center px-4 text-center">
-          <div className="max-w-3xl space-y-6">
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
-              Our <span className="text-gold-400">Story</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-lg text-xl text-gray-300">
-              Crafting exceptional hookah experiences since 2010, blending tradition with innovation.
-            </p>
-          </div>
-        </div>
-      </section>
-    )
-  }
+        <h1 className="font-serif text-4xl font-bold text-white sm:text-5xl md:text-6xl">
+          Nuestra <span className="text-gold-400">Pasión</span>, Tu{" "}
+          <span className="text-gold-400">Experiencia</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-3xl text-gray-300 text-lg">
+          Desde 2017, Narguilas Córdoba ha sido más que un negocio; es la
+          materialización de un sueño compartido. Descubre la historia de cómo
+          dos amigos transformaron su pasión por la narguila en la marca
+          referente de Argentina, dedicada a elevar cada momento.
+        </p>
+      </div>
+    </section>
+  );
+};
   

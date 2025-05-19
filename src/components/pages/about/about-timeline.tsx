@@ -11,54 +11,54 @@ interface TimelineEvent {
 
 const timelineEvents: TimelineEvent[] = [
   {
-    year: "2010",
-    title: "The Beginning",
+    year: "2024",
+    title: "Un Nuevo Capítulo",
     description:
-      "Luxury Hookah was founded with a vision to create the finest hookah products, opening our first boutique store.",
-  },
-  {
-    year: "2012",
-    title: "First Signature Collection",
-    description:
-      "We launched our first signature collection, featuring hand-crafted hookahs that quickly gained recognition among connoisseurs.",
-  },
-  {
-    year: "2014",
-    title: "International Expansion",
-    description:
-      "Our products reached international markets, establishing Luxury Hookah as a global brand in premium shisha products.",
-  },
-  {
-    year: "2016",
-    title: "Award-Winning Designs",
-    description:
-      "Our Royal Sultan collection won the prestigious Design Excellence Award for its innovative approach to traditional hookah design.",
-  },
-  {
-    year: "2018",
-    title: "Second Flagship Store",
-    description:
-      "We opened our second flagship store, featuring an exclusive lounge where customers could experience our products firsthand.",
-  },
-  {
-    year: "2020",
-    title: "10th Anniversary",
-    description:
-      "Celebrating a decade of excellence with the launch of our limited edition Anniversary Collection, featuring 24K gold accents.",
-  },
-  {
-    year: "2022",
-    title: "Sustainable Initiative",
-    description:
-      "Introduced our eco-conscious line, combining luxury with sustainability through responsibly sourced materials.",
+      "Un año que marcará un antes y un después para la cultura narguilera en Argentina. Gracias al apoyo de nuestra comunidad, nos preparamos para un 2024 lleno de sorpresas, innovación y crecimiento. ¡Vamos por más!",
   },
   {
     year: "2023",
-    title: "Digital Transformation",
+    title: "Crecimiento y Evolución",
     description:
-      "Launched our immersive online shopping experience, bringing the luxury of our physical stores to the digital realm.",
+      "Crecimos con ustedes. Lanzamos Narguicbaevents, llevando la experiencia narguilera a eventos únicos, con más de 10 casamientos realizados. Sumamos nuevas formas de pago, incorporamos a Ariel al equipo y, lo más importante, dejamos nuestros trabajos para dedicarnos 100% a este sueño.",
   },
-]
+  {
+    year: "2022",
+    title: "Expansión y Liderazgo",
+    description:
+      "Nos convertimos en sponsor oficial del torneo Campa y únicos en Argentina en vender Darkside. Mudamos nuestro showroom a un espacio más grande y cómodo, reforzando nuestro compromiso con la experiencia del cliente. Además, revolucionamos las redes sociales con contenido cercano que inspiró a toda la comunidad.",
+  },
+  {
+    year: "2021",
+    title: "Primer Showroom",
+    description:
+      "Abrimos nuestro primer showroom y dimos un gran salto desde el garage. Incorporamos productos premium como Fumari, Ziggy y Adalya, posicionándonos como referentes del mercado. Creamos un punto de encuentro para que más personas vivan la experiencia completa de la narguila.",
+  },
+  {
+    year: "2020",
+    title: "Reinvención",
+    description:
+      "El año comenzó con eventos en Zebra Club, pero la pandemia nos obligó a reinventarnos. Implementamos envíos a todo el país, llevando la narguila a cada rincón de Argentina. Nos adaptamos y crecimos incluso en tiempos difíciles.",
+  },
+  {
+    year: "2019",
+    title: "Expansión de Productos",
+    description:
+      "Sumamos productos como Kaloud, carbones de coco y Adalya, ampliando nuestra oferta. Ingresamos al mundo de los boliches, y dimos nuestro primer servicio de catering para un casamiento, llevando la narguila a la vida nocturna.",
+  },
+  {
+    year: "2018",
+    title: "Conexión Comunitaria",
+    description:
+      "Organizamos degustaciones en bares y eventos, fortaleciendo la conexión con nuestra comunidad. El interés por la narguila crecía, y nosotros crecíamos con él. Fue un año clave para posicionar nuestra propuesta y escuchar de cerca a los clientes.",
+  },
+  {
+    year: "2017",
+    title: "Los Inicios",
+    description:
+      "Todo empezó con Guille y Matías, dos amigos buscando mejorar su experiencia narguilera en Córdoba. Lo que comenzó como una pasión, se transformó en un proyecto que sentó las bases de todo lo que vendría. El primer paso de una gran historia.",
+  },
+].reverse()
 
 export function AboutTimeline() {
   const controls = useAnimation()
@@ -75,13 +75,13 @@ export function AboutTimeline() {
     <section className="bg-gradient-to-b from-black to-gray-900 py-20">
       <div className="container px-4 md:px-6">
         <div className="mb-16 text-center">
-          <div className="inline-block rounded-lg bg-gold-500/10 px-3 py-1 text-sm text-gold-400">Our Journey</div>
+          <div className="inline-block rounded-lg bg-gold-500/10 px-3 py-1 text-sm text-gold-400">Nuestra Historia</div>
           <h2 className="mt-4 font-serif text-3xl font-bold text-white md:text-4xl">
-            The <span className="text-gold-400">Evolution</span> of Excellence
+            La <span className="text-gold-400">Evolución</span> de Narguilas Córdoba
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-            Tracing our path from a small boutique to a global luxury brand, each milestone represents our commitment to
-            craftsmanship and innovation.
+          Un recorrido año por año de nuestro crecimiento, desafíos y logros
+          que nos han convertido en quienes somos hoy.
           </p>
         </div>
 
@@ -106,7 +106,7 @@ export function AboutTimeline() {
                 <div className="absolute left-1/2 h-6 w-6 -translate-x-1/2 transform rounded-full border-4 border-gold-500 bg-black"></div>
 
                 {/* Content */}
-                <div className={`w-1/2 ${index % 2 === 0 ? "pr-12 text-right" : "pl-12 text-left"}`}>
+                <div className={`w-1/2 ${index % 2 === 0 ? "pr-12" : "pl-12 text-left"}`}>
                   <div className="rounded-lg bg-gray-800 p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-gold-500/20">
                     <span className="inline-block rounded-full bg-gold-500 px-3 py-1 text-sm font-bold text-black">
                       {event.year}

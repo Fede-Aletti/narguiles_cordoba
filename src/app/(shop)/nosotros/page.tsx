@@ -1,27 +1,24 @@
-import { AboutHero } from "@/components/pages/about/about-hero";
-import { AboutStory } from "@/components/pages/about/about-story";
+import { NosotrosHero } from "@/components/pages/about/about-hero";
+import { NuestraHistoria } from "@/components/pages/about/about-story";
 import { AboutTimeline } from "@/components/pages/about/about-timeline";
-import { AboutValues } from "@/components/pages/about/about-values";
+import { NuestrosValores } from "@/components/pages/about/about-values";
 
-import { AboutContact } from "@/components/pages/about/about-contact";
-import { AboutCraftsmanship } from "@/components/pages/about/about-craftmanship";
 
 export const metadata = {
-  title: "About Us | Luxury Hookah",
+  title: "Nosotros | Narguilas Córdoba",
   description:
-    "Discover our story, heritage, and commitment to crafting the finest hookah experiences.",
+    "Descubre nuestra historia, nuestro compromiso y nuestra pasión por ofrecer las mejores experiencias narguileras.",
 };
 
 export default function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">
-        <AboutHero />
-        <AboutStory />
+        <NosotrosHero />
+        <NuestraHistoria />
         <AboutTimeline />
-        <AboutCraftsmanship />
-        <AboutValues />
-        <AboutContact />
+        <NuestrosValores />
+        {/* <AboutContact /> */}
       </main>
     </div>
   );

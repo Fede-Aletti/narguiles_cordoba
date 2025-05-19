@@ -35,7 +35,7 @@ export function AboutCraftsmanship() {
               The Art of <span className="text-gold-400">Craftsmanship</span>
             </h2>
             <p className="text-gray-400">
-              Each Luxury Hookah product is the result of meticulous
+              Each Narguilas Córdoba product is the result of meticulous
               craftsmanship and attention to detail. Our master artisans combine
               traditional techniques with modern innovation to create pieces
               that are not just functional, but works of art.

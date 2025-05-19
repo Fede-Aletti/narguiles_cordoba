@@ -60,7 +60,7 @@ export const EventInquiryDialog = ({
     const { name, email, phone, eventType, guestCount, eventDate, message } =
       formData;
 
-    let whatsappMessage = `Hola Luxury Hookah,\n\nEstoy interesado/a en su servicio de catering de narguilas para un evento. A continuación, los detalles:\n\n`;
+    let whatsappMessage = `Hola Narguilas Córdoba,\n\nEstoy interesado/a en su servicio de catering de narguilas para un evento. A continuación, los detalles:\n\n`;
     whatsappMessage += `*Nombre:* ${name}\n`;
     whatsappMessage += `*Email:* ${email}\n`;
     if (phone) whatsappMessage += `*Teléfono:* ${phone}\n`;

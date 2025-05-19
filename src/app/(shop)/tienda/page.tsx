@@ -5,7 +5,7 @@
 import { ProductsPage } from "@/components/pages/products-page"
 
 export const metadata = {
-  title: "Shop Premium Hookahs & Accessories | Luxury Hookah",
+  title: "Shop Premium Hookahs & Accessories | Narguilas Córdoba",
   description: "Browse our exclusive collection of premium hookahs, tobacco, and accessories.",
 }
 

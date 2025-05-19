@@ -27,7 +27,7 @@ export function EventCateringService() {
                 Nuestro Servicio de Catering de Narguilas
               </h2>
               <p className="mt-4 text-lg text-gray-300">
-                Nargui CBA te ofrece el mejor servicio personalizado de catering
+                Narguilas Córdoba te ofrece el mejor servicio personalizado de catering
                 de narguilas para <span className="text-gold-400">casamientos,
                 reuniones, convenciones, fiestas privadas</span> y demás eventos.
                 Acompaña tus momentos especiales con nuestras narguilas premium y
@@ -72,7 +72,7 @@ export function EventCateringService() {
               <div className="aspect-square w-full rounded-lg bg-gray-800 shadow-xl">
                  <img 
                     src="/placeholder.svg?height=500&width=500&text=Catering+Narguilas" 
-                    alt="Catering de Narguilas Luxury Hookah" 
+                    alt="Catering de Narguilas Narguilas Córdoba" 
                     className="h-full w-full rounded-lg object-cover"
                   />
               </div>

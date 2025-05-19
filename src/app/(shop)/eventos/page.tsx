@@ -3,7 +3,7 @@ import { EventsGrid } from "@/components/pages/events/events-grid";
 import { EventCateringService } from "./components/events-catering-service";
 
 export const metadata = {
-  title: "Eventos | Luxury Hookah",
+  title: "Eventos | Narguilas Córdoba",
   description:
     "Descubre nuestros exclusivos eventos y experiencias de shisha de lujo.",
 };
