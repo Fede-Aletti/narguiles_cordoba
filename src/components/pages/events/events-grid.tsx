@@ -178,8 +178,7 @@ export function EventsGrid() {
             Experiencias <span className="text-gold-400">Exclusivas</span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-gray-400">
-            Descubre nuestros eventos pasados y próximos. Cada ocasión es una
-            oportunidad para sumergirse en el mundo del lujo y la excelencia.
+            Descubre nuestros eventos pasados.
           </p>
         </div>
 

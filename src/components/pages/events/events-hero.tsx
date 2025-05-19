@@ -14,8 +14,7 @@ export function EventsHero() {
             Nuestros <span className="text-gold-400">Eventos</span>
           </h1>
           <p className="mx-auto mt-6 max-w-lg text-xl text-gray-300">
-            Experiencias exclusivas de shisha en los entornos más elegantes.
-            Descubre la esencia del lujo.
+            Eleva tu evento a un nuevo nivel.
           </p>
         </div>
       </div>

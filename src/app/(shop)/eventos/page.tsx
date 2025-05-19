@@ -1,5 +1,6 @@
 import { EventsHero } from "@/components/pages/events/events-hero";
 import { EventsGrid } from "@/components/pages/events/events-grid";
+import { EventCateringService } from "./components/events-catering-service";
 
 export const metadata = {
   title: "Eventos | Luxury Hookah",
@@ -12,6 +13,7 @@ export default function EventsPage() {
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">
         <EventsHero />
+        <EventCateringService />
         <EventsGrid />
       </main>s
     </div>
