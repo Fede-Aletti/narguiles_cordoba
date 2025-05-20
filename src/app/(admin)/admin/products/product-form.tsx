@@ -131,7 +131,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
     }
   }, [selectedPriceGroupId, priceGroups, form]);
 
-  const handleSelectMedia = (mediaItem: Media, isMultiple = false) => {
+  const handleSelectMedia = (mediaItem: Media, isMultiple = true) => {
     const currentSelectedIds = form.getValues('selectedMediaIds') || [];
     if (isMultiple) {
       if (currentSelectedIds.includes(mediaItem.id)) {
