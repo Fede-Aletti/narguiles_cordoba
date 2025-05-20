@@ -139,7 +139,7 @@ export const columns: ColumnDef<IProduct>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const product = row.original;
 
       return (
@@ -158,7 +158,11 @@ export const columns: ColumnDef<IProduct>[] = [
               Copiar ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent('EDIT_PRODUCT', { detail: product }))}>
+            <DropdownMenuItem onClick={() => {
+              if (table.options.meta && typeof table.options.meta.editProduct === 'function') {
+                table.options.meta.editProduct(product);
+              }
+            }}>
               Editar
             </DropdownMenuItem>
             <DropdownMenuItem className="text-red-600">Eliminar (TODO)</DropdownMenuItem>
