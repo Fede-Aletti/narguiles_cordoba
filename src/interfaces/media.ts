@@ -20,10 +20,29 @@ export interface IMediaItem {
   id: string; // UUID
   folder_id?: string | null; // UUID
   url: string;
-  name?: string | null;
+  name: string; // Reverted from file_name, non-nullable
+  alt_text?: string | null;
   tags?: string[] | null;
   created_by?: string | null; // UUID User ID
   created_by_user?: IUser | null; // Populated field
   created_at: string; // TIMESTAMPTZ
 }
+
+// Payloads for creating and updating MediaItem
+export interface CreateMediaItemPayload {
+  url: string;
+  folder_id?: string | null;
+  name: string;
+  alt_text?: string | null;
+  tags?: string[] | null;
+  // created_by will be handled by RLS or server-side logic
+}
+
+export interface UpdateMediaItemPayload {
+  url?: string;
+  folder_id?: string | null;
+  name?: string;
+  alt_text?: string | null;
+  tags?: string[] | null;
+  }
   

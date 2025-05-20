@@ -64,12 +64,12 @@ export async function fetchUserByIdWithAuthEmail(id: string): Promise<UserWithAu
     .from('auth.users')
     .select('email')
     .eq('id', user.auth_user_id)
-    .single();
+        .single();
 
   if (authError) {
     console.warn(`Could not fetch auth email for user ${id}:`, authError.message);
   }
-  
+
   return mapRawUserToIUser(user, authUser?.email);
 }
 
@@ -178,7 +178,7 @@ export async function ensureServerAuthUserHasPublicProfile(): Promise<IUser | nu
     .insert(newUserPayload)
     .select(USER_SELECT_QUERY)
     .single();
-
+    
   if (createError) {
     console.error('Error creating public user profile:', createError);
     throw createError;

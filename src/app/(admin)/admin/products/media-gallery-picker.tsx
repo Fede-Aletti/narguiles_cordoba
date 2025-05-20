@@ -14,24 +14,19 @@ import { Image as ImageIcon, Loader2, Check } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import { cn } from '@/lib/utils'
-
-interface Media {
-  id: number
-  url: string
-  alt?: string
-}
+import type { IMediaItem } from '@/interfaces/media'
 
 interface MediaGalleryPickerProps {
-  onSelectMedia: (media: Media) => void
-  selectedMediaIds?: number[]
+  onSelectMedia: (media: IMediaItem) => void
+  selectedMediaIds?: string[]
   multiSelect?: boolean
 }
 
-async function fetchMediaItems(): Promise<Media[]> {
+async function fetchGalleryMediaItems(): Promise<IMediaItem[]> {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('media')
-    .select('id, url, alt')
+    .from('media_item')
+    .select('id, url, name, alt_text, tags, created_at, folder_id, created_by')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
@@ -46,19 +41,19 @@ export function MediaGalleryPicker({
 }: MediaGalleryPickerProps) {
   const [open, setOpen] = useState(false)
 
-  const { data: mediaItems, isLoading } = useQuery({
-    queryKey: ['media-gallery'],
-    queryFn: fetchMediaItems,
+  const { data: mediaItems, isLoading } = useQuery<IMediaItem[], Error>({
+    queryKey: ['gallery-media-items'],
+    queryFn: fetchGalleryMediaItems,
   })
 
-  const handleSelectImage = (media: Media) => {
+  const handleSelectImage = (media: IMediaItem) => {
     onSelectMedia(media)
     if (!multiSelect) {
       setOpen(false) // Cerrar solo en modo single select
     }
   }
 
-  const isSelected = (id: number) => selectedMediaIds.includes(id)
+  const isSelected = (id: string) => selectedMediaIds.includes(id)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -101,7 +96,7 @@ export function MediaGalleryPicker({
                 >
                   <Image
                     src={media.url}
-                    alt={media.alt || "Imagen"}
+                    alt={media.alt_text || media.name || "Imagen"}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 50vw, 33vw"

@@ -120,7 +120,7 @@ export async function fetchProductBySlug(slug: string): Promise<IShopProduct | n
     }
     return null;
   }
-  
+
   // At this point, product should be a valid product object from the database
   // TypeScript might still be unsure, so we use a type assertion for clarity before mapping.
   const validProduct = product as unknown as IShopProduct; // Assuming it fits IShopProduct structure by now
@@ -133,7 +133,7 @@ export async function fetchProductBySlug(slug: string): Promise<IShopProduct | n
   const userFavoriteIds = await fetchUserFavoriteProductIds();
   const favoriteCount = await getProductFavoriteCount(validProduct.id);
   const shopProductWithFavorites = mapRawProductToIShopProduct(validProduct, userFavoriteIds);
-  
+
   return {
     ...shopProductWithFavorites,
     favoriteCount,

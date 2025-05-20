@@ -10,5 +10,5 @@ export interface IAddress {
   created_at: string; // TIMESTAMPTZ
   updated_at?: string | null; // TIMESTAMPTZ
   deleted_at?: string | null; // TIMESTAMPTZ
-}
+  }
   

@@ -91,7 +91,7 @@ export async function createProductAction(formData: ProductFormData): Promise<{ 
     category_id: formData.category_id,
     status: formData.status,
   };
-
+  
   const { data: product, error } = await supabase
     .from('product')
     .insert(productPayload)

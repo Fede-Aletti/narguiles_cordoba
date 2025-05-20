@@ -81,7 +81,7 @@ export async function fetchUserOrdersWithDetails(): Promise<EnrichedOrder[]> {
           const rawProduct = item.product as IProduct; // Product data from the query
           let displayProduct: OrderItemDisplayProduct | null = null;
           if (rawProduct) {
-            let imageUrl = "/placeholder.svg";
+          let imageUrl = "/placeholder.svg";
             // Attempt to get first image from product_media or images array from IProduct
             const images = rawProduct.product_media?.map(pm => pm.media).filter(Boolean) as IMediaItem[] | undefined;
             if (images && images.length > 0 && images[0]?.url) {
@@ -171,7 +171,7 @@ export async function createOrderFromCart(
 
   const orderItemsToInsert = cartItems.map((item) => ({
     order_id: orderData.id,
-    product_id: item.product.id, 
+    product_id: item.product.id,
     quantity: item.quantity,
     price_at_purchase: item.product.price || 0, 
   }));
@@ -187,7 +187,7 @@ export async function createOrderFromCart(
 }
 
 export function useCreateOrder() {
-  const { clearCart } = useStore(); 
+  const { clearCart } = useStore();
   const queryClient = useQueryClient();
   return useMutation<
     { id: string }, 

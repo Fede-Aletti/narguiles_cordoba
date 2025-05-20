@@ -1,3 +1,5 @@
+"use server";
+
 // src/app/admin/media/media-queries.ts
 import { createClient } from "@/utils/supabase/server";
 import type { IMediaFolder, IMediaItem } from "@/interfaces/media";
@@ -74,7 +76,7 @@ export async function deleteMediaFolder(id: string): Promise<void> {
 
 // MEDIA ITEM ACTIONS
 
-const MEDIA_ITEM_SELECT_QUERY = '*, folder:folder_id(*), created_by_user:created_by(*)';
+const MEDIA_ITEM_SELECT_QUERY = 'id, folder_id, url, name, alt_text, tags, created_by, created_at, folder:folder_id(*), created_by_user:created_by(*)';
 
 // Fetch all media items (optionally filter by folder)
 export async function fetchMediaItems(folderId?: string | null): Promise<IMediaItem[]> {
@@ -84,15 +86,19 @@ export async function fetchMediaItems(folderId?: string | null): Promise<IMediaI
     .select(MEDIA_ITEM_SELECT_QUERY)
     .order('created_at', { ascending: false });
 
-  if (folderId) {
-    query = query.eq('folder_id', folderId);
-  } else {
-    query = query.is('folder_id', null); // Fetch items in root if no folderId
+  // Only apply folder_id filter if folderId is explicitly provided (not undefined)
+  if (folderId !== undefined) {
+    if (folderId === null) {
+      query = query.is('folder_id', null); // Fetch items in root
+    } else {
+      query = query.eq('folder_id', folderId); // Fetch items in a specific folder
+    }
   }
+  // If folderId is undefined, no folder filter is applied, fetching all items.
   
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return data as IMediaItem[] ?? [];
+  return data as unknown as IMediaItem[] ?? [];
 }
 
 // Fetch a single media item by ID
@@ -104,7 +110,7 @@ export async function fetchMediaItemById(id: string): Promise<IMediaItem | null>
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as IMediaItem | null;
+  return data as unknown as IMediaItem | null;
 }
 
 export interface CreateMediaItemPayload {
@@ -124,7 +130,7 @@ export async function createMediaItem(payload: CreateMediaItemPayload): Promise<
     .select(MEDIA_ITEM_SELECT_QUERY)
     .single();
   if (error) throw new Error(error.message);
-  return data as IMediaItem;
+  return data as unknown as IMediaItem;
 }
 
 export interface UpdateMediaItemPayload {
@@ -144,7 +150,7 @@ export async function updateMediaItem(id: string, payload: UpdateMediaItemPayloa
     .select(MEDIA_ITEM_SELECT_QUERY)
     .single();
   if (error) throw new Error(error.message);
-  return data as IMediaItem;
+  return data as unknown as IMediaItem;
 }
 
 // Delete a media item
