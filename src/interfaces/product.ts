@@ -1,23 +1,36 @@
 import { ProductStatus } from "./enums";
+import { IPriceGroup } from './price-group';
+import { IBrand } from './brand';
+import { ICategory } from './category';
+import { IUser } from './user';
+import { IMediaItem } from './media';
 
-export interface Product {
-  id: number;
-  name: string;
-  slug: string;
-  stock: number;
-  price?: number;
-  price_group_id?: number;
-  brand_id?: number;
-  category_id?: number;
-  status: ProductStatus;
-  created_by?: number;
-  created_at: string;
-  updated_at?: string;
-  deleted_at?: string;
+export interface IProductMedia {
+  id: string; // UUID
+  product_id: string; // UUID
+  media_id: string; // UUID
+  media?: IMediaItem; // Populated field
 }
 
-export interface ProductMedia {
-  id: number;
-  product_id: number;
-  media_id: number;
+export interface IProduct {
+  id: string; // UUID
+  name: string;
+  slug: string;
+  description?: string | null;
+  stock: number;
+  price?: number | null; // NUMERIC(10,2)
+  price_group_id?: string | null; // UUID
+  price_group?: IPriceGroup | null; // Populated field
+  brand_id?: string | null; // UUID
+  brand?: IBrand | null; // Populated field
+  category_id?: string | null; // UUID
+  category?: ICategory | null; // Populated field
+  status: ProductStatus;
+  images?: IMediaItem[] | null; // Derived from product_media
+  product_media?: IProductMedia[] | null; // For joining
+  created_by?: string | null; // UUID User ID
+  created_by_user?: IUser | null; // Populated field
+  created_at: string; // TIMESTAMPTZ
+  updated_at?: string | null; // TIMESTAMPTZ
+  deleted_at?: string | null; // TIMESTAMPTZ
 }

@@ -1,9 +1,15 @@
-export interface Brand {
-  id: number;
+import { IMediaItem } from './media';
+import { IUser } from './user';
+
+export interface IBrand {
+  id: string; // UUID
   name: string;
-  image_id?: number;
-  created_by?: number;
-  created_at: string;
-  updated_at?: string;
-  deleted_at?: string;
+  description?: string | null;
+  image_id?: string | null; // UUID
+  image?: IMediaItem | null; // Populated field
+  created_by?: string | null; // UUID User ID
+  created_by_user?: IUser | null; // Populated field
+  created_at: string; // TIMESTAMPTZ
+  updated_at?: string | null; // TIMESTAMPTZ
+  deleted_at?: string | null; // TIMESTAMPTZ
 }
