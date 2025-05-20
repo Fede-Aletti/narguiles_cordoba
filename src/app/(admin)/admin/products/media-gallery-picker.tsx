@@ -27,7 +27,6 @@ async function fetchGalleryMediaItems(): Promise<IMediaItem[]> {
   const { data, error } = await supabase
     .from('media_item')
     .select('id, url, name, alt_text, tags, created_at, folder_id, created_by')
-    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -41,10 +40,12 @@ export function MediaGalleryPicker({
 }: MediaGalleryPickerProps) {
   const [open, setOpen] = useState(false)
 
-  const { data: mediaItems, isLoading } = useQuery<IMediaItem[], Error>({
+  const { data: mediaItems, isLoading, error } = useQuery<IMediaItem[], Error>({
     queryKey: ['gallery-media-items'],
     queryFn: fetchGalleryMediaItems,
   })
+
+  console.log("MediaGalleryPicker data:", { mediaItems, isLoading, error });
 
   const handleSelectImage = (media: IMediaItem) => {
     onSelectMedia(media)

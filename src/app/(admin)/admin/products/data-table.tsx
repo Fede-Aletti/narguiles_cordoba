@@ -182,14 +182,12 @@ export function ProductsDataTable<TValue>({
 
       {/* <DataTablePagination table={table} /> */}{/* Commented out */}
 
-      {editingProduct && (
-        <ProductSheet
-          productData={editingProduct as ProductRow}
-          isEditing={true}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-        />
-      )}
+      <ProductSheet
+        productData={editingProduct ? (editingProduct as unknown as ProductRow) : undefined}
+        isEditing={!!editingProduct}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </div>
   );
 }
