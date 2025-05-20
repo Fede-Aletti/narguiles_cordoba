@@ -3,45 +3,78 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { IAddress } from '@/interfaces/address';
 import type { IUser } from '@/interfaces/user'; // For userProfile.id type
 
-export async function fetchUserAddresses(): Promise<IAddress[]> {
+// Renamed: Fetches addresses for the currently authenticated user
+export async function fetchMyAddresses(): Promise<IAddress[]> {
   const supabase = createClient();
   
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
   if (authError || !authUser) {
-    console.log("fetchUserAddresses: No authenticated user found.");
+    console.log("fetchMyAddresses: No authenticated user found.");
     return [];
   }
 
+  // Fetch the public user profile ID using the authUser.id
   const { data: userProfile, error: profileError } = await supabase
-    .from('user')
-    .select('id') // IUser.id is string (UUID)
-    .eq('auth_user_id', authUser.id)
-    .single<Pick<IUser, 'id'> >();
+    .from('user') // public.user table
+    .select('id') 
+    .eq('auth_user_id', authUser.id) // Link via auth_user_id
+    .single<{ id: string }>(); // Expecting a single object with an id property
 
   if (profileError || !userProfile) {
-    console.error("fetchUserAddresses: Error fetching user profile or profile not found.", profileError);
+    console.error("fetchMyAddresses: Error fetching user profile or profile not found.", profileError);
     return []; 
   }
 
   const { data, error } = await supabase
     .from('address')
-    .select('*') // Selects all fields for IAddress
-    .eq('user_id', userProfile.id) 
+    .select('*')
+    .eq('user_id', userProfile.id) // Filter by public.user.id
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
     
   if (error) {
-    console.error("fetchUserAddresses: Error fetching addresses for user.", error);
+    console.error("fetchMyAddresses: Error fetching addresses for user.", error);
     throw error; 
   }
   
   return (data as IAddress[]) || [];
 }
 
+// Updated hook to use fetchMyAddresses
 export function useUserAddresses() {
   return useQuery<IAddress[], Error>({
-    queryKey: ['user-addresses'],
-    queryFn: fetchUserAddresses,
+    queryKey: ['my-user-addresses'], // Changed queryKey for clarity
+    queryFn: fetchMyAddresses,
+  });
+}
+
+// New function to fetch addresses for a specific user (for admin)
+export async function fetchAddressesByUserId(userId: string): Promise<IAddress[]> {
+  if (!userId) {
+    console.log("fetchAddressesByUserId: No userId provided.");
+    return [];
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('address')
+    .select('*')
+    .eq('user_id', userId) // userId here is public.user.id
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(`fetchAddressesByUserId: Error fetching addresses for user ${userId}.`, error);
+    throw error;
+  }
+  return (data as IAddress[]) || [];
+}
+
+// New hook for admin to fetch addresses by user ID
+export function useAddressesByUserId(userId: string | undefined | null) {
+  return useQuery<IAddress[], Error>({
+    queryKey: ['user-addresses', userId], // Include userId in queryKey
+    queryFn: () => userId ? fetchAddressesByUserId(userId) : Promise.resolve([]),
+    enabled: !!userId, // Only run query if userId is present
   });
 }
 
@@ -59,7 +92,7 @@ export async function createAddress(payload: CreateAddressPayload): Promise<IAdd
     .from('user')
     .select('id')
     .eq('auth_user_id', authUser.id)
-    .single<Pick<IUser, 'id'> >();
+    .single<{id: string}>();
 
   if (profileErr || !userProfile) {
     throw new Error(profileErr?.message || "Perfil de usuario no encontrado para crear dirección.");
@@ -73,7 +106,7 @@ export async function createAddress(payload: CreateAddressPayload): Promise<IAdd
   const { data, error } = await supabase
     .from('address')
     .insert(addressToInsert)
-    .select('*') // Selects all fields for IAddress
+    .select('*')
     .single<IAddress>();
 
   if (error) throw error;
@@ -86,8 +119,9 @@ export function useCreateAddress() {
   return useMutation<IAddress, Error, CreateAddressPayload>({
     mutationFn: createAddress,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
-      // Optionally, you can update the cache directly here with the newly created address `data`
+      queryClient.invalidateQueries({ queryKey: ['my-user-addresses'] }); // Invalidate self-addresses
+      // Optionally, if an admin creates an address for another user (not typical via this hook),
+      // you might need a more specific invalidation or update.
     },
   });
 }

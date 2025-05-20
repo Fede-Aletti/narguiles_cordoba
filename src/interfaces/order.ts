@@ -3,6 +3,11 @@ import { IUser } from "./user";
 import { IAddress } from "./address";
 import { IProduct } from "./product";
 
+// Define a specific user type for orders that includes email
+export interface IOrderUser extends Pick<IUser, 'id' | 'first_name' | 'last_name'> {
+  email?: string | null;
+}
+
 export interface IOrderItem {
   id: string; // UUID
   order_id: string; // UUID
@@ -17,7 +22,7 @@ export interface IOrderItem {
 export interface IOrder {
   id: string; // UUID
   user_id?: string | null; // UUID
-  user?: IUser | null; // Populated field
+  user?: IOrderUser | null; // Use the new IOrderUser type
   status: OrderStatus;
   store_pickup: boolean;
   shipping_address_id?: string | null; // UUID

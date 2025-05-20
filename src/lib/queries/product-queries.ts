@@ -113,6 +113,27 @@ export function usePriceGroupsForSelect() {
     });
 }
 
+// Type for Product Select options
+export type ProductSelectOption = Pick<IProduct, 'id' | 'name'>;
+
+export async function fetchProductsForSelect(): Promise<ProductSelectOption[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('product')
+    .select('id, name')
+    .is('deleted_at', null)
+    .order('name', { ascending: true })
+  if (error) throw new Error(error.message)
+  return data as ProductSelectOption[] || []
+}
+
+export function useProductsForSelect() {
+    return useQuery<ProductSelectOption[], Error>({
+        queryKey: ['products-for-select'],
+        queryFn: fetchProductsForSelect,
+    });
+}
+
 export const useProductMediaItems = (productId?: string | null) => {
   return useQuery<IMediaItem[], Error>({
     queryKey: ['product-media-items', productId],

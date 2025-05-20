@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { UserTable } from "./components/user-table";
+import { fetchUsersWithAuthEmail, type UserWithAuthEmail } from "@/actions/user-actions";
 
 export default async function UsersPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { data, error: authError } = await supabase.auth.getUser();
 
-  if (error || !data?.user) {
+  if (authError || !data?.user) {
     redirect("/login");
   }
 
@@ -21,15 +22,28 @@ export default async function UsersPage() {
     redirect("/unauthorized");
   }
 
+  let initialUsers: UserWithAuthEmail[] = [];
+  let fetchError: string | null = null;
+  try {
+    initialUsers = await fetchUsersWithAuthEmail();
+  } catch (e: any) {
+    console.error("Failed to fetch initial users:", e);
+    fetchError = e.message;
+  }
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-6">Administración de Usuarios</h1>
-      <p className="text-gray-500 mb-8">
+      <p className="text-muted-foreground mb-8">
         Gestiona los usuarios de la plataforma, edita sus datos y controla sus
         roles.
       </p>
-
-      <UserTable />
+      {fetchError && (
+        <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
+          <span className="font-medium">Error al cargar usuarios:</span> {fetchError}
+        </div>
+      )}
+      <UserTable initialUsers={initialUsers} />
     </div>
   );
 }
