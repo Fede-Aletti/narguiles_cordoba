@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -11,8 +11,9 @@ import {
   useReactTable,
   ColumnFiltersState,
   getFilteredRowModel,
+  VisibilityState,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, QueryClient, type QueryKey } from "@tanstack/react-query";
 
 import {
   Table,
@@ -38,91 +39,95 @@ import { ProductForm } from "./product-form";
 import { ProductSheet } from "./product-sheet";
 import { globalFilterFn } from "./columns";
 import { ProductRow } from "@/types/product";
+import { fetchFullProducts } from "@/lib/queries/product-queries"; // Ensure this is imported
+// import { DataTablePagination } from "@/components/data-table-pagination"; // Commented out
+// import { DataTableViewOptions } from "@/components/data-table-view-options"; // Commented out
 
-interface DataTableProps<TData extends IProduct, TValue> { // Use IProduct
-  columns: ColumnDef<TData, TValue>[];
-  initialData?: TData[];
+interface DataTableProps<TValue> {
+  columns: ColumnDef<IProduct, TValue>[];
+  initialData: IProduct[];
+  errorInitial?: Error | null;
 }
 
-export function ProductsDataTable<TData extends IProduct, TValue>({
-  columns,
-  initialData,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [globalFilterValue, setGlobalFilterValue] = React.useState('')
-
-  const [editingProduct, setEditingProduct] = React.useState<TData | null>(
-    null
-  );
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleEditProduct = (e: any) => {
-      const productDetail = e.detail as TData; // Assuming e.detail is of type TData (IProduct)
-      setEditingProduct(productDetail);
-      setSheetOpen(true);
-    };
-
-    window.addEventListener("EDIT_PRODUCT", handleEditProduct as EventListener);
-    return () => {
-      window.removeEventListener("EDIT_PRODUCT", handleEditProduct as EventListener);
-    };
-  }, []);
+export function ProductsDataTable<TValue>({ 
+  columns, 
+  initialData, 
+  errorInitial 
+}: DataTableProps<TValue>) {
+  const queryClient = useQueryClient(); // Correct usage
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [globalFilterValue, setGlobalFilterValue] = React.useState('');
+  const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const {
-    data: productsData,
-    isLoading,
-    error,
-  } = useQuery<TData[], Error, TData[], [string]>({
+    data: tableData = [],
+    isLoading: queryIsLoading,
+    error: queryError,
+  } = useQuery<IProduct[], Error, IProduct[], QueryKey>({
     queryKey: ["products"],
+    queryFn: fetchFullProducts,
     initialData: initialData,
     staleTime: Infinity,
   });
 
+  const effectiveIsLoading = queryIsLoading && tableData.length === 0 && initialData.length === 0;
+  const effectiveError = queryError;
+  
+  const dataForTable = tableData.length > 0 ? tableData : initialData;
+
   const table = useReactTable({
-    data: productsData ?? initialData ?? [], 
+    data: dataForTable,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row, id, filterValue) => {
-      // Ensure row.original is compatible with globalFilterFn expectations
       return globalFilterFn(row.original as IProduct, id, String(filterValue));
     },
     state: {
       sorting,
       columnFilters,
+      columnVisibility,
+      rowSelection,
       globalFilter: globalFilterValue,
     },
-    onGlobalFilterChange: setGlobalFilterValue,
+    meta: {
+      editProduct: (product: IProduct) => {
+        setEditingProduct(product);
+        setSheetOpen(true);
+      }
+    }
   });
 
-  // Adjust loading and error states based on initialData presence
-  const effectiveIsLoading = isLoading && !initialData;
-  const effectiveError = error;
+  useEffect(() => {
+    if (!sheetOpen) {
+      setEditingProduct(null);
+    }
+  }, [sheetOpen]);
 
-  if (effectiveIsLoading) return <div>Cargando productos...</div>;
-  if (effectiveError) return <div>Error al cargar productos: {effectiveError.message}</div>;
-  if (!productsData && !initialData?.length) return <div>No se encontraron productos.</div>;
+  if (effectiveIsLoading) return <div className="text-center p-4">Cargando productos...</div>;
+  if (effectiveError) return <div className="text-center p-4 text-red-600">Error al cargar productos: {effectiveError.message}</div>;
+  if (!dataForTable.length) return <div className="text-center p-4">No se encontraron productos.</div>;
 
   return (
-    <div>
-      <div className="flex items-center py-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <Input
-          placeholder="Filtrar por nombre..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
+          placeholder="Filtrar todos los campos..."
+          value={globalFilterValue ?? ''}
+          onChange={event => setGlobalFilterValue(event.target.value)}
           className="max-w-sm"
-          aria-label="Filtrar productos por nombre"
         />
+        {/* <DataTableViewOptions table={table} /> */}{/* Commented out */}
       </div>
       <div className="rounded-md border">
         <Table>
@@ -174,35 +179,15 @@ export function ProductsDataTable<TData extends IProduct, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          aria-label="Go to previous page"
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          aria-label="Go to next page"
-        >
-          Siguiente
-        </Button>
-      </div>
 
-      {/* ProductSheet for editing - ensure editingProduct is compatible with ProductSheet props */}
+      {/* <DataTablePagination table={table} /> */}{/* Commented out */}
+
       {editingProduct && (
         <ProductSheet
-          productData={editingProduct as ProductRow} // Explicitly cast if ProductSheet expects IProduct
+          productData={editingProduct as ProductRow}
           isEditing={true}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
-          key={`edit-product-${editingProduct.id}`}
         />
       )}
     </div>

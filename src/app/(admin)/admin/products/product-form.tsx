@@ -293,7 +293,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Ninguno</SelectItem>
+                  <SelectItem value="-">Ninguno</SelectItem>
                   {priceGroups?.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name} ({group.price ? `$${group.price}` : 'Precio variable'})
@@ -340,7 +340,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">-- Sin marca --</SelectItem>
+                  <SelectItem value="-">-- Sin marca --</SelectItem>
                   {brands?.map((brand) => (
                     <SelectItem key={brand.id} value={brand.id}>
                       {brand.name}
@@ -366,7 +366,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">-- Sin categoría --</SelectItem>
+                  <SelectItem value="-">-- Sin categoría --</SelectItem>
                   {categories?.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
