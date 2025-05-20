@@ -24,8 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fetchProducts } from "@/lib/queries/product-queries"; // Ajusta la ruta
-import type { ProductFormData, ProductRow } from "@/types/product"; // Ajusta la ruta
+import type { IProduct } from "@/interfaces/product"; // Use IProduct directly
 import {
   Dialog,
   DialogHeader,
@@ -38,13 +37,16 @@ import { PlusCircle } from "lucide-react";
 import { ProductForm } from "./product-form";
 import { ProductSheet } from "./product-sheet";
 import { globalFilterFn } from "./columns";
+import { ProductRow } from "@/types/product";
 
-interface DataTableProps<TData extends ProductRow, TValue> {
+interface DataTableProps<TData extends IProduct, TValue> { // Use IProduct
   columns: ColumnDef<TData, TValue>[];
+  initialData?: TData[];
 }
 
-export function ProductsDataTable<TData extends ProductRow, TValue>({
+export function ProductsDataTable<TData extends IProduct, TValue>({
   columns,
+  initialData,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -57,16 +59,16 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
   );
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
-  // Efecto para escuchar el evento de edición
   React.useEffect(() => {
     const handleEditProduct = (e: any) => {
-      setEditingProduct(e.detail);
-      setSheetOpen(true); // Abre el Sheet automáticamente
+      const productDetail = e.detail as TData; // Assuming e.detail is of type TData (IProduct)
+      setEditingProduct(productDetail);
+      setSheetOpen(true);
     };
 
-    window.addEventListener("EDIT_PRODUCT", handleEditProduct);
+    window.addEventListener("EDIT_PRODUCT", handleEditProduct as EventListener);
     return () => {
-      window.removeEventListener("EDIT_PRODUCT", handleEditProduct);
+      window.removeEventListener("EDIT_PRODUCT", handleEditProduct as EventListener);
     };
   }, []);
 
@@ -74,13 +76,14 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
     data: productsData,
     isLoading,
     error,
-  } = useQuery<TData[]>({
+  } = useQuery<TData[], Error, TData[], [string]>({
     queryKey: ["products"],
-    queryFn: fetchProducts as () => Promise<TData[]>,
+    initialData: initialData,
+    staleTime: Infinity,
   });
 
   const table = useReactTable({
-    data: productsData ?? [],
+    data: productsData ?? initialData ?? [], 
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -89,7 +92,8 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     globalFilterFn: (row, id, filterValue) => {
-      return globalFilterFn(row.original, id, String(filterValue));
+      // Ensure row.original is compatible with globalFilterFn expectations
+      return globalFilterFn(row.original as IProduct, id, String(filterValue));
     },
     state: {
       sorting,
@@ -99,9 +103,13 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
     onGlobalFilterChange: setGlobalFilterValue,
   });
 
-  if (isLoading) return <div>Cargando productos...</div>;
-  if (error) return <div>Error al cargar productos: {error.message}</div>;
-  if (!productsData) return <div>No se encontraron productos.</div>;
+  // Adjust loading and error states based on initialData presence
+  const effectiveIsLoading = isLoading && !initialData;
+  const effectiveError = error;
+
+  if (effectiveIsLoading) return <div>Cargando productos...</div>;
+  if (effectiveError) return <div>Error al cargar productos: {effectiveError.message}</div>;
+  if (!productsData && !initialData?.length) return <div>No se encontraron productos.</div>;
 
   return (
     <div>
@@ -113,7 +121,7 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
             table.getColumn("name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
-          aria-label="Filter products by name"
+          aria-label="Filtrar productos por nombre"
         />
       </div>
       <div className="rounded-md border">
@@ -187,9 +195,10 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
         </Button>
       </div>
 
+      {/* ProductSheet for editing - ensure editingProduct is compatible with ProductSheet props */}
       {editingProduct && (
         <ProductSheet
-          productData={editingProduct}
+          productData={editingProduct as ProductRow} // Explicitly cast if ProductSheet expects IProduct
           isEditing={true}
           open={sheetOpen}
           onOpenChange={setSheetOpen}

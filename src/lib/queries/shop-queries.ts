@@ -9,6 +9,9 @@ import { ProductStatus } from "@/interfaces/enums";
 import { getProductFavoriteCount, fetchUserFavoriteProductIds } from "./favorite-queries"; // Ensure this returns string[] for IDs
 import { useStore } from "@/lib/store";
 
+// Define the fields to select from media_item specifically for shop products
+const SHOP_MEDIA_ITEM_SELECT_FIELDS = 'id, url, name, alt_text, tags, folder_id, created_at'; // Excludes created_by as it might not be needed for shop display
+
 // Extended product interface for the shop with all relations
 export interface IShopProduct extends IProduct {
   // IProduct already includes:
@@ -25,9 +28,9 @@ export interface IShopProduct extends IProduct {
 const SHOP_PRODUCT_SELECT_QUERY = 
   'id, name, slug, description, stock, price, status, created_at, updated_at, ' +
   'price_group:price_group_id(*), ' +
-  'brand:brand_id(*, image:image_id(*)), ' +            // Populate brand and its image
-  'category:category_id(*, image:image_id(*)), ' +      // Populate category and its image
-  'product_media:product_media(id, media:media_id(*))'; // Populate product_media and the nested media_item
+  'brand:brand_id(*, image:image_id(id, url, name, alt_text)), ' +      // Populate brand and its image, be specific
+  'category:category_id(*, image:image_id(id, url, name, alt_text)), ' +  // Populate category and its image, be specific
+  `product_media:product_media(id, media:media_id(${SHOP_MEDIA_ITEM_SELECT_FIELDS}))`; // Populate product_media and the nested media_item with specific fields
 
 function mapRawProductToIShopProduct(rawProduct: any, userFavoriteIds: string[] = []): IShopProduct {
   const productMedia: IProductMedia[] | null = rawProduct.product_media?.map((pm: any) => ({

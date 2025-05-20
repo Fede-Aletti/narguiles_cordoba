@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -22,54 +21,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner"; // o from 'react-hot-toast'
-import { createProductAction, updateProductAction } from "@/actions/product-actions";
+import { toast } from "sonner";
+import {
+  createProductAction,
+  updateProductAction,
+  type ProductFormData as ActionProductFormData,
+} from "@/actions/product-actions";
 import {
   fetchCategoriesForSelect,
   fetchBrandsForSelect,
   fetchPriceGroupsForSelect,
-  useProductMediaQuery,
+  useProductMediaItems,
+  type CategorySelectOption,
+  type BrandSelectOption,
+  type PriceGroupSelectOption,
 } from "@/lib/queries/product-queries";
 import {
   PRODUCT_STATUS_OPTIONS,
-  PRODUCT_STATUS_VALUES,
   ProductStatus,
-} from "@/interfaces/enums"; // Import PRODUCT_STATUS_OPTIONS
-import type { Media, ProductFormData } from "@/types/product";
+} from "@/interfaces/enums";
+import {
+  type Media,
+  productFormSchema,
+  type ProductFormValues,
+  type ProductFormData,
+} from "@/types/product";
 import { useEffect, useState } from "react";
 import { MediaGalleryPicker } from './media-gallery-picker';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 
-
-// Definir PRODUCT_STATUS_OPTIONS en enums.ts o aquí
-// export const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
-//   { value: 'in_stock', label: 'En Stock' },
-//   { value: 'out_of_stock', label: 'Agotado' },
-//   { value: 'running_low', label: 'Poco Stock' },
-// ];
-
-const productFormSchema = z.object({
-  name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
-  slug: z.string().optional(), 
-  stock: z.coerce.number().int().min(0, { message: 'El stock no puede ser negativo.' }),
-  price: z.coerce.number().positive({ message: 'El precio debe ser positivo.' }).optional().nullable(),
-  price_group_id: z.coerce.number().int().positive().optional().nullable(),
-  brand_id: z.coerce.number().int().positive({ message: 'Selecciona una marca.' }),
-  category_id: z.coerce.number().int().positive({ message: 'Selecciona una categoría.' }),
-  status: z.enum(PRODUCT_STATUS_VALUES as [string, ...string[]], {
-    errorMap: () => ({ message: "Selecciona un estado válido." })
-  }),
-  selectedMediaIds: z.array(z.number()).optional(),
-}).refine(data => data.price || data.price_group_id, {
-  message: "Debes especificar un precio o un grupo de precios.",
-  path: ["price"], 
-});
-
-type ProductFormValues = z.infer<typeof productFormSchema>;
-
 interface ProductFormProps {
-  setOpen: (open: boolean) => void; // Para cerrar el diálogo
+  setOpen: (open: boolean) => void;
   productData?: ProductFormData;
   isEditing?: boolean;
 }
@@ -78,55 +61,58 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
   const queryClient = useQueryClient();
   const [selectedMedia, setSelectedMedia] = useState<Media[]>([]);
 
-  const { data: productMedia } = useProductMediaQuery(productData?.id);
-
-  useEffect(() => {
-    if (productMedia && productMedia.length > 0) {
-      setSelectedMedia(productMedia as unknown as Media[]);
-      form.setValue(
-        'selectedMediaIds', 
-        productMedia.map(m => typeof m === 'object' && m !== null && 'id' in m ? m.id : null)
-          .filter(Boolean) as number[]
-      );
-    }
-  }, [productMedia]);
+  const { data: initialProductMedia } = useProductMediaItems(productData?.id);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: isEditing && productData 
+    defaultValues: isEditing && productData
       ? {
           name: productData.name,
-          slug: productData.slug,
+          slug: productData.slug ?? undefined,
+          description: productData.description ?? null,
           stock: productData.stock,
           price: productData.price,
-          price_group_id: productData.price_group_id,
+          price_group_id: productData.price_group_id ?? undefined,
           brand_id: productData.brand_id,
           category_id: productData.category_id,
-          status: productData.status,
-          selectedMediaIds: [],
+          status: productData.status as ProductStatus,
+          selectedMediaIds: productData.selectedMediaIds ?? [],
         }
       : {
           name: '',
           slug: '',
+          description: null,
           stock: 0,
-          price: undefined,
-          price_group_id: undefined,
-          status: PRODUCT_STATUS_VALUES[0],
+          price: null,
+          price_group_id: null,
+          brand_id: null as string | null,
+          category_id: null as string | null,
+          status: PRODUCT_STATUS_OPTIONS[0].value,
           selectedMediaIds: [],
-        }
+        },
   });
 
-  const { data: categories, isLoading: isLoadingCategories } = useQuery({
+  useEffect(() => {
+    if (initialProductMedia && initialProductMedia.length > 0) {
+      setSelectedMedia(initialProductMedia as Media[]);
+      form.setValue(
+        'selectedMediaIds',
+        initialProductMedia.map(m => m.id).filter(Boolean) as string[]
+      );
+    }
+  }, [initialProductMedia, form]);
+
+  const { data: categories, isLoading: isLoadingCategories } = useQuery<CategorySelectOption[], Error>({
     queryKey: ["categoriesForSelect"],
     queryFn: fetchCategoriesForSelect,
   });
 
-  const { data: brands, isLoading: isLoadingBrands } = useQuery({
+  const { data: brands, isLoading: isLoadingBrands } = useQuery<BrandSelectOption[], Error>({
     queryKey: ["brandsForSelect"],
     queryFn: fetchBrandsForSelect,
   });
 
-  const { data: priceGroups, isLoading: isLoadingPriceGroups } = useQuery({
+  const { data: priceGroups, isLoading: isLoadingPriceGroups } = useQuery<PriceGroupSelectOption[], Error>({
     queryKey: ["priceGroupsForSelect"],
     queryFn: fetchPriceGroupsForSelect,
   });
@@ -134,40 +120,60 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
   const selectedPriceGroupId = form.watch("price_group_id");
 
   useEffect(() => {
-    if (selectedPriceGroupId) {
-      const selectedGroup = priceGroups?.find(
+    if (selectedPriceGroupId && priceGroups) {
+      const selectedGroup = priceGroups.find(
         (pg) => pg.id === selectedPriceGroupId
       );
-      if (selectedGroup) {
+      if (selectedGroup && selectedGroup.price !== undefined) {
         form.setValue("price", selectedGroup.price, { shouldValidate: true });
       }
+    } else if (!selectedPriceGroupId) {
     }
   }, [selectedPriceGroupId, priceGroups, form]);
 
-  const handleSelectMedia = (media: Media, isMultiple = false) => {
+  const handleSelectMedia = (mediaItem: Media, isMultiple = false) => {
+    const currentSelectedIds = form.getValues('selectedMediaIds') || [];
     if (isMultiple) {
-      if (selectedMedia.some(m => m.id === media.id)) {
-        const filtered = selectedMedia.filter(m => m.id !== media.id);
+      if (currentSelectedIds.includes(mediaItem.id)) {
+        const filtered = selectedMedia.filter(m => m.id !== mediaItem.id);
         setSelectedMedia(filtered);
         form.setValue('selectedMediaIds', filtered.map(m => m.id));
       } else {
-        const newSelection = [...selectedMedia, media];
+        const newSelection = [...selectedMedia, mediaItem];
         setSelectedMedia(newSelection);
         form.setValue('selectedMediaIds', newSelection.map(m => m.id));
       }
     } else {
-      setSelectedMedia([media]);
-      form.setValue('selectedMediaIds', [media.id]);
+      setSelectedMedia([mediaItem]);
+      form.setValue('selectedMediaIds', [mediaItem.id]);
     }
   };
+  
+  const currentSelectedMediaIds = form.watch('selectedMediaIds') || [];
 
   const createMutation = useMutation({
-    mutationFn: createProductAction,
+    mutationFn: async (values: ProductFormValues) => {
+      const payload: ActionProductFormData = {
+        name: values.name,
+        slug: values.slug ?? undefined,
+        description: values.description === undefined ? null : values.description,
+        stock: values.stock,
+        price: values.price,
+        price_group_id: values.price_group_id === undefined ? null : values.price_group_id,
+        brand_id: values.brand_id === undefined ? null : values.brand_id,
+        category_id: values.category_id === undefined ? null : values.category_id,
+        status: values.status as ProductStatus,
+        selectedMediaIds: values.selectedMediaIds ?? [],
+      };
+      return createProductAction(payload);
+    },
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['full-products'] });
       setOpen(false);
       form.reset();
+      setSelectedMedia([]);
     },
     onError: (error: any) => {
       toast.error(`Error: ${error.message}`);
@@ -175,14 +181,28 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: typeof form.getValues) => {
-      if (!productData?.id) throw new Error('ID de producto no encontrado');
-      return updateProductAction(productData.id, data as unknown as ProductFormData);
+    mutationFn: async (values: ProductFormValues) => {
+      if (!productData?.id) throw new Error('ID de producto no encontrado para actualizar.');
+      const payload: ActionProductFormData = {
+        name: values.name,
+        slug: values.slug ?? undefined,
+        description: values.description === undefined ? null : values.description,
+        stock: values.stock,
+        price: values.price,
+        price_group_id: values.price_group_id === undefined ? null : values.price_group_id,
+        brand_id: values.brand_id === undefined ? null : values.brand_id,
+        category_id: values.category_id === undefined ? null : values.category_id,
+        status: values.status as ProductStatus,
+        selectedMediaIds: values.selectedMediaIds ?? [],
+      };
+      return updateProductAction(productData.id, payload);
     },
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['product-media', productData?.id] });
+      queryClient.invalidateQueries({ queryKey: ['full-products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productData?.slug] });
+      queryClient.invalidateQueries({ queryKey: ['product-media-items', productData?.id] });
       setOpen(false);
     },
     onError: (error: any) => {
@@ -190,17 +210,17 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
     },
   });
 
-  function onSubmit(values: typeof form.getValues) {
+  function onSubmit(values: ProductFormValues) {
     if (isEditing) {
       updateMutation.mutate(values);
     } else {
-      createMutation.mutate(values as unknown as ProductFormData);
+      createMutation.mutate(values);
     }
   }
-  
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="name"
@@ -208,13 +228,9 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
             <FormItem>
               <FormLabel>Nombre del Producto</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ej: Shisha Deluxe"
-                  {...field}
-                  aria-describedby="name-message"
-                />
+                <Input placeholder="Ej: Pipa de Silicona" {...field} />
               </FormControl>
-              <FormMessage id="name-message" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -224,141 +240,118 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Slug (Opcional)</FormLabel>
+              <FormLabel>Slug (URL)</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ej: shisha-deluxe"
-                  {...field}
-                  aria-describedby="slug-message"
-                />
+                <Input placeholder="Ej: pipa-de-silicona (opcional)" {...field} />
               </FormControl>
               <FormDescription>
-                Si se deja vacío, se generará automáticamente.
+                Si se deja vacío, se generará automáticamente a partir del nombre.
               </FormDescription>
-              <FormMessage id="slug-message" />
+              <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="stock"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Stock</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    {...field}
-                    aria-describedby="stock-message"
-                  />
-                </FormControl>
-                <FormMessage id="stock-message" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Estado</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger aria-label="Seleccionar estado del producto">
-                      <SelectValue placeholder="Selecciona un estado" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PRODUCT_STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descripción (Opcional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Detalles del producto..." {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="price_group_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Grupo de Precios (Opcional)</FormLabel>
-                <Select
-                  onValueChange={(value) =>
-                    field.onChange(value ? parseInt(value) : undefined)
-                  }
-                  value={field.value?.toString() ?? undefined}
-                  defaultValue={field.value?.toString() ?? undefined}
-                  disabled={isLoadingPriceGroups}
-                >
-                  <FormControl>
-                    <SelectTrigger aria-label="Seleccionar grupo de precios">
-                      <SelectValue
-                        placeholder={
-                          isLoadingPriceGroups
-                            ? "Cargando..."
-                            : "Selecciona un grupo"
-                        }
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {priceGroups?.map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name} ({Number(group.price).toFixed(2)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Si seleccionas un grupo, el precio se establecerá
-                  automáticamente.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Precio (si no usa Grupo)</FormLabel>
+        <FormField
+          control={form.control}
+          name="stock"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Stock Disponible</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="Ej: 100" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="price_group_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Grupo de Precios (Opcional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === ""
-                          ? null
-                          : parseFloat(e.target.value)
-                      )
-                    }
-                    disabled={!!selectedPriceGroupId}
-                    aria-describedby="price-message"
-                  />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un grupo de precios" />
+                  </SelectTrigger>
                 </FormControl>
-                <FormMessage id="price-message" />
-              </FormItem>
-            )}
-          />
-        </div>
+                <SelectContent>
+                  <SelectItem value="">Ninguno</SelectItem>
+                  {priceGroups?.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name} ({group.price ? `$${group.price}` : 'Precio variable'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Si seleccionas un grupo, el precio se actualizará automáticamente. 
+                Puedes sobrescribirlo manualmente abajo.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="price"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Precio</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="Ej: 1500.00" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormDescription>
+                Precio final del producto. Se actualiza si eliges un grupo de precios.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="brand_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Marca</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una marca" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">-- Sin marca --</SelectItem>
+                  {brands?.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -366,28 +359,16 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoría</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(parseInt(value))}
-                defaultValue={field.value?.toString()}
-                disabled={isLoadingCategories}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
                 <FormControl>
-                  <SelectTrigger aria-label="Seleccionar categoría">
-                    <SelectValue
-                      placeholder={
-                        isLoadingCategories
-                          ? "Cargando..."
-                          : "Selecciona una categoría"
-                      }
-                    />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una categoría" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="">-- Sin categoría --</SelectItem>
                   {categories?.map((category) => (
-                    <SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                    >
+                    <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -400,28 +381,20 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
 
         <FormField
           control={form.control}
-          name="brand_id"
+          name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Marca</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(parseInt(value))}
-                defaultValue={field.value?.toString()}
-                disabled={isLoadingBrands}
-              >
+              <FormLabel>Estado</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger aria-label="Seleccionar marca">
-                    <SelectValue
-                      placeholder={
-                        isLoadingBrands ? "Cargando..." : "Selecciona una marca"
-                      }
-                    />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un estado" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {brands?.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id.toString()}>
-                      {brand.name}
+                  {PRODUCT_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -431,44 +404,41 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           )}
         />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Imágenes del producto</h3>
-            <MediaGalleryPicker 
-              onSelectMedia={(media) => handleSelectMedia(media, true)} 
-              selectedMediaIds={selectedMedia.map(m => m.id)}
-              multiSelect={true}
-            />
+        <FormItem>
+          <FormLabel>Imágenes del Producto</FormLabel>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {selectedMedia.map(media => (
+              <div key={media.id} className="relative group w-24 h-24">
+                <Image src={media.url} alt={media.alt_text || 'Product image'} layout="fill" objectFit="cover" className="rounded" />
+                <Button 
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6"
+                  onClick={() => {
+                    const filtered = selectedMedia.filter(m => m.id !== media.id);
+                    setSelectedMedia(filtered);
+                    form.setValue('selectedMediaIds', filtered.map(m => m.id));
+                  }}
+                  aria-label={`Remover imagen ${media.name}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
-          
-          {selectedMedia.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-              {selectedMedia.map(media => (
-                <div key={media.id} className="relative group aspect-square border rounded-md overflow-hidden">
-                  <Image
-                    src={media.url}
-                    alt={media.alt || "Imagen del producto"}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleSelectMedia(media, true)}
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                  >
-                    <X className="h-6 w-6 text-white" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          <MediaGalleryPicker 
+            selectedMediaIds={currentSelectedMediaIds} 
+            onSelectMedia={handleSelectMedia} 
+            multiSelect={true}
+          />
+          <FormDescription>
+            Selecciona una o más imágenes para el producto.
+          </FormDescription>
+        </FormItem>
 
-        <Button type="submit" className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending
-            ? isEditing ? "Actualizando..." : "Creando..."
-            : isEditing ? "Actualizar Producto" : "Crear Producto"}
+        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+          {isEditing ? 'Actualizar Producto' : 'Crear Producto'}
         </Button>
       </form>
     </Form>

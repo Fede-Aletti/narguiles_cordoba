@@ -1,3 +1,4 @@
+"use server";
 // src/app/admin/price-groups/price-group-queries.ts
 import { createClient } from '@/utils/supabase/server'; // Assuming server for actions
 import type { IPriceGroup } from '@/interfaces/price-group';

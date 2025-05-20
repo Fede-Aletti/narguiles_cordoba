@@ -27,13 +27,14 @@ export interface ProductFormData {
   stock: number | string;
   price?: number | string | null;
   price_group_id?: string | null;
-  brand_id: string;
-  category_id: string;
+  brand_id: string | null;
+  category_id: string | null;
   status: ProductStatus;
   selectedMediaIds?: string[]; 
 }
 
-const PRODUCT_SELECT_QUERY = 'id, name, slug, description, stock, price, status, created_at, updated_at, deleted_at, price_group:price_group_id(*), brand:brand_id(*), category:category_id(*), product_media:product_media(id, media:media_id(*))';
+const MEDIA_ITEM_FIELDS_FOR_PRODUCT = 'id, url, name, alt_text, tags, folder_id, created_by, created_at';
+const PRODUCT_SELECT_QUERY = `id, name, slug, description, stock, price, status, created_at, updated_at, deleted_at, price_group:price_group_id(*), brand:brand_id(*), category:category_id(*), product_media:product_media(id, media:media_id(${MEDIA_ITEM_FIELDS_FOR_PRODUCT}))`;
 
 function mapRawProductToIProduct(rawProduct: any): IProduct {
   return {
@@ -59,6 +60,7 @@ export async function fetchProducts(): Promise<IProduct[]> {
     .select(PRODUCT_SELECT_QUERY)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
+
   if (error) throw new Error(error.message);
   return (data?.map(mapRawProductToIProduct) as IProduct[]) ?? [];
 }

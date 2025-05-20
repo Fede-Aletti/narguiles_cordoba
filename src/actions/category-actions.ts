@@ -1,3 +1,4 @@
+"use server";
 // src/app/admin/catalogo/category-queries.ts
 import { createClient } from '@/utils/supabase/server'; // Assuming server for actions
 import type { ICategory } from '@/interfaces/category';

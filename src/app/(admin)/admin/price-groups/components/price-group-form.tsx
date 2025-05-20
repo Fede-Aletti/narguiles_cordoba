@@ -12,6 +12,8 @@ const schema = z.object({
   price: z.coerce.number().positive('El precio debe ser mayor a 0'),
 })
 
+export type PriceFormValues = z.infer<typeof schema>
+
 export function PriceGroupForm({ onSubmit, defaultValues, loading }: {
   onSubmit: (data: { name: string, price: number }) => void,
   defaultValues?: { name: string, price: number },

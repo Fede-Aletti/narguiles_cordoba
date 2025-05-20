@@ -1,3 +1,4 @@
+"use server";
 import { createClient } from '@/utils/supabase/server'
 import type { IBrand } from '@/interfaces/brand'
 import type { IMediaItem } from '@/interfaces/media'
