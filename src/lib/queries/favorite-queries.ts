@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store"; // Corregir ruta de importación
+import type { IFavorite } from "@/interfaces/favorite";
+import type { IUser } from "@/interfaces/user"; // For userProfile.id type
 
 export interface Favorite {
   id: number;
@@ -10,17 +12,16 @@ export interface Favorite {
 }
 
 // Obtener los IDs de productos favoritos de un usuario
-export async function fetchUserFavoriteProductIds(): Promise<number[]> {
+export async function fetchUserFavoriteProductIds(): Promise<string[]> {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
-  if (!authUser) return []; // O throw new Error("Usuario no autenticado");
+  if (!authUser) return [];
 
-  // Necesitamos el user.id de la tabla 'user', no el authUser.id directamente para la FK
   const { data: userProfile, error: profileError } = await supabase
     .from("user")
-    .select("id")
+    .select("id") // IUser.id is string (UUID)
     .eq("auth_user_id", authUser.id)
-    .single();
+    .single<Pick<IUser, 'id'> >();
 
   if (profileError || !userProfile) {
     console.error("Error fetching user profile for favorites:", profileError);
@@ -29,32 +30,30 @@ export async function fetchUserFavoriteProductIds(): Promise<number[]> {
 
   const { data, error } = await supabase
     .from("favorite")
-    .select("product_id")
+    .select("product_id") // IFavorite.product_id is string (UUID)
     .eq("user_id", userProfile.id);
 
   if (error) {
     console.error("Error fetching user favorites:", error);
     throw error;
   }
-  return data ? data.map(fav => fav.product_id) : [];
+  return data ? data.map(fav => fav.product_id as string) : [];
 }
 
 export function useUserFavoriteProductIds() {
   const { setFavoriteIds } = useStore.getState();
-  return useQuery<number[], Error>({
+  return useQuery<string[], Error>({
     queryKey: ["user-favorites"],
-    queryFn: async () => { // Hacer queryFn async y mover lógica de onSuccess aquí
+    queryFn: async () => {
       const ids = await fetchUserFavoriteProductIds();
-      setFavoriteIds(ids || []); // Actualizar store global
+      setFavoriteIds(ids || []); 
       return ids || [];
     },
-    // onSuccess fue removido de las opciones directas en RQ v5 para useQuery
-    // La lógica ahora está en queryFn o se puede manejar con useEffect en el componente
   });
 }
 
 // Añadir un producto a favoritos
-export async function addFavorite(productId: number): Promise<Favorite | null> {
+export async function addFavorite(productId: string): Promise<IFavorite | null> {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) throw new Error("Usuario no autenticado para añadir favorito.");
@@ -63,7 +62,7 @@ export async function addFavorite(productId: number): Promise<Favorite | null> {
     .from("user")
     .select("id")
     .eq("auth_user_id", authUser.id)
-    .single();
+    .single<Pick<IUser, 'id'> >();
 
   if (profileError || !userProfile) {
     console.error("Error fetching user profile for addFavorite:", profileError);
@@ -73,21 +72,18 @@ export async function addFavorite(productId: number): Promise<Favorite | null> {
   const { data, error } = await supabase
     .from("favorite")
     .insert({ product_id: productId, user_id: userProfile.id })
-    .select()
-    .single();
+    .select("*") // Select all fields for IFavorite
+    .single<IFavorite>();
   
   if (error) {
-    // PGRST116 es el código para violación de constraint unique (ya es favorito)
-    if (error.code === '23505') { // Código para unique_violation en PostgreSQL
+    if (error.code === '23505') { 
       console.warn(`Product ${productId} is already a favorite for user ${userProfile.id}.`);
-      // Podríamos querer retornar el favorito existente o simplemente null/undefined
-      // Por ahora, busquemos el existente para ser consistentes si la UI lo espera
       const { data: existingFav } = await supabase
         .from("favorite")
         .select("*")
         .eq("user_id", userProfile.id)
         .eq("product_id", productId)
-        .single();
+        .single<IFavorite>();
       return existingFav;
     }
     console.error("Error adding favorite:", error);
@@ -97,7 +93,7 @@ export async function addFavorite(productId: number): Promise<Favorite | null> {
 }
 
 // Quitar un producto de favoritos
-export async function removeFavorite(productId: number): Promise<{ product_id: number } | null> {
+export async function removeFavorite(productId: string): Promise<{ product_id: string } | null> {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) throw new Error("Usuario no autenticado para quitar favorito.");
@@ -106,7 +102,7 @@ export async function removeFavorite(productId: number): Promise<{ product_id: n
     .from("user")
     .select("id")
     .eq("auth_user_id", authUser.id)
-    .single();
+    .single<Pick<IUser, 'id'> >();
 
   if (profileError || !userProfile) {
     console.error("Error fetching user profile for removeFavorite:", profileError);
@@ -118,14 +114,13 @@ export async function removeFavorite(productId: number): Promise<{ product_id: n
     .delete()
     .eq("product_id", productId)
     .eq("user_id", userProfile.id)
-    .select("product_id") // Devolver el product_id para identificar qué se borró
-    .single(); // Asumimos que solo habrá uno o ninguno
+    .select("product_id") 
+    .single<{ product_id: string }>(); 
 
   if (error) {
     console.error("Error removing favorite:", error);
     throw error;
   }
-  // data será el objeto {product_id: number} o null si no se encontró para borrar
   return data ? { product_id: data.product_id } : null;
 }
 
@@ -135,9 +130,9 @@ export function useToggleFavorite() {
   const { addFavoriteIdToStore, removeFavoriteIdFromStore } = useStore.getState();
 
   return useMutation<
-    Favorite | { product_id: number } | null, // Tipo de retorno de add/remove
+    IFavorite | { product_id: string } | null, 
     Error,
-    { productId: number; isCurrentlyFavorite: boolean }
+    { productId: string; isCurrentlyFavorite: boolean }
   >({
     mutationFn: async ({ productId, isCurrentlyFavorite }) => {
       if (isCurrentlyFavorite) {
@@ -147,30 +142,24 @@ export function useToggleFavorite() {
       }
     },
     onSuccess: (data, variables) => {
-      // Actualizar el store global
-      if (variables.isCurrentlyFavorite) { // Se eliminó
+      if (variables.isCurrentlyFavorite) { 
         removeFavoriteIdFromStore(variables.productId);
-      } else { // Se añadió
-        if(data && ('id' in data)) { // data es Favorite (se añadió)
+      } else { 
+        if(data && ('id' in data)) { 
             addFavoriteIdToStore(variables.productId);
         }
       }
-      // Invalidar la query de favoritos del usuario para refrescar la lista desde la DB
       queryClient.invalidateQueries({ queryKey: ["user-favorites"] });
-      // También invalidar el conteo de favoritos para el producto específico
       queryClient.invalidateQueries({ queryKey: ["product-favorite-count", variables.productId] });
-      // Podrías querer invalidar la query del producto si esta incluye isFavorite
-      // queryClient.invalidateQueries({ queryKey: ["product", variables.productId] }); 
     },
     onError: (error) => {
       console.error("Error toggling favorite:", error);
-      // Aquí podrías mostrar una notificación al usuario
     },
   });
 }
 
 // Obtener el conteo de favoritos para un producto
-export async function getProductFavoriteCount(productId: number): Promise<number> {
+export async function getProductFavoriteCount(productId: string): Promise<number> {
   const supabase = createClient();
   const { count, error } = await supabase
     .from("favorite")
@@ -179,16 +168,15 @@ export async function getProductFavoriteCount(productId: number): Promise<number
 
   if (error) {
     console.error(`Error fetching favorite count for product ${productId}:`, error.message);
-    // Don't throw, return 0 so the page can still render
     return 0;
   }
   return count || 0;
 }
 
-export function useProductFavoriteCount(productId: number) {
+export function useProductFavoriteCount(productId: string) {
   return useQuery<number, Error>({
     queryKey: ["product-favorite-count", productId],
     queryFn: () => getProductFavoriteCount(productId),
-    enabled: !!productId, // Solo ejecutar si productId está disponible
+    enabled: !!productId,
   });
 } 

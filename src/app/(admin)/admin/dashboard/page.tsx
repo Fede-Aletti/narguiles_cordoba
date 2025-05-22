@@ -32,6 +32,13 @@ export default async function PrivatePage() {
 
   const adminSections = [
     {
+      title: "Pedidos",
+      description: "Gestionar pedidos",
+      href: "/admin/orders",
+      color: "bg-indigo-500",
+      icon: "🛒",
+    },
+    {
       title: "Usuarios",
       description: "Gestionar usuarios y sus permisos",
       href: "/admin/usuarios",

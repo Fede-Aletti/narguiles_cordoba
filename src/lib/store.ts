@@ -2,11 +2,12 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 export type Product = {
-  id: number;
+  id: string;
   name: string;
   description: string;
   price: number;
   image?: string;
+  slug: string;
   category: string;
   stock?: number;
   maxStock?: number;
@@ -20,14 +21,14 @@ type CartItem = {
 type StoreState = {
   products: Product[];
   cartItems: CartItem[];
-  favoriteProductIds: number[];
+  favoriteProductIds: string[];
   addToCart: (product: any, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  setFavoriteIds: (ids: number[]) => void;
-  addFavoriteIdToStore: (id: number) => void;
-  removeFavoriteIdFromStore: (id: number) => void;
+  setFavoriteIds: (ids: string[]) => void;
+  addFavoriteIdToStore: (id: string) => void;
+  removeFavoriteIdFromStore: (id: string) => void;
 };
 
 export const useStore = create<StoreState>()(
@@ -40,24 +41,26 @@ export const useStore = create<StoreState>()(
       addToCart: (product, quantity = 1) =>
         set((state) => {
           const mainImage =
+            (product.images && product.images[0]?.url) || 
             product.image ||
-            (product.media && product.media[0]?.url) ||
             "/placeholder.svg";
+          
           const storeProduct: Product = {
-            id: product.id,
+            id: String(product.id),
             name: product.name,
             description: product.description || "",
             price: product.price || 0,
             image: mainImage,
+            slug: product.slug || "",
             category:
               typeof product.category === "object" && product.category?.name
                 ? product.category.name
-                : product.category || "unknown",
+                : typeof product.category === 'string' ? product.category : "unknown",
             stock: product.stock,
-            maxStock: product.stock || product.maxStock || 99,
+            maxStock: product.stock || 99,
           };
           const existingItem = state.cartItems.find(
-            (item) => item.product.id === product.id
+            (item) => item.product.id === storeProduct.id
           );
           const maxStock = storeProduct.maxStock || 99;
 
@@ -65,7 +68,7 @@ export const useStore = create<StoreState>()(
             const newQty = Math.min(existingItem.quantity + quantity, maxStock);
             return {
               cartItems: state.cartItems.map((item) =>
-                item.product.id === product.id
+                item.product.id === storeProduct.id
                   ? { ...item, quantity: newQty }
                   : item
               ),
@@ -90,7 +93,7 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           cartItems: state.cartItems.map((item) => {
             if (item.product.id === productId) {
-              const maxStock = item.product.maxStock || 99;
+              const maxStock = item.product.stock || 99;
               return {
                 ...item,
                 quantity: Math.max(1, Math.min(quantity, maxStock)),

@@ -1,14 +1,14 @@
-export interface Address {
-    id: number;
-    user_id: number;
-    street?: string;
-    street_number?: string;
-    province?: string;
-    city?: string;
-    postal_code?: string;
-    phone_number?: string;
-    created_at: string;
-    updated_at?: string;
-    deleted_at?: string;
+export interface IAddress {
+  id: string; // UUID
+  user_id?: string | null; // UUID
+  street?: string | null;
+  street_number?: string | null;
+  province?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+  phone_number?: string | null;
+  created_at: string; // TIMESTAMPTZ
+  updated_at?: string | null; // TIMESTAMPTZ
+  deleted_at?: string | null; // TIMESTAMPTZ
   }
   

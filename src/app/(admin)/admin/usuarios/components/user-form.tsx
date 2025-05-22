@@ -22,20 +22,17 @@ import {
 import { UserRole } from "@/interfaces/enums";
 
 const userRoles: { label: string; value: UserRole }[] = [
-  { label: "Superadmin", value: "superadmin" },
-  { label: "Admin", value: "admin" },
-  { label: "Marketing", value: "marketing" },
-  { label: "Cliente", value: "client" },
+  { label: "Superadmin", value: UserRole.SUPERADMIN },
+  { label: "Admin", value: UserRole.ADMIN },
+  { label: "Marketing", value: UserRole.MARKETING },
+  { label: "Cliente", value: UserRole.CLIENT },
 ];
 
 const schema = z.object({
   first_name: z.string().min(1, "El nombre es requerido"),
   last_name: z.string().min(1, "El apellido es requerido"),
   phone_number: z.string().optional().nullable(),
-  role: z.enum(["superadmin", "admin", "marketing", "client"] as [
-    UserRole,
-    ...UserRole[]
-  ]),
+  role: z.nativeEnum(UserRole),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -55,7 +52,7 @@ export function UserForm({
       first_name: "",
       last_name: "",
       phone_number: "",
-      role: "client",
+      role: UserRole.CLIENT,
     },
   });
 

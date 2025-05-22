@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { ShopProduct } from "@/lib/queries/shop-queries"
+import { IShopProduct } from "@/lib/queries/shop-queries"
 import { ProductStatus } from "@/interfaces/enums"
 import { useUserFavoriteProductIds, useToggleFavorite } from "@/lib/queries/favorite-queries"
 import { useRouter } from "next/navigation"
@@ -16,7 +16,7 @@ import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
 
 interface ProductCardProps {
-  product: ShopProduct
+  product: IShopProduct
 }
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -57,9 +57,13 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   }
 
-  const mainImage = product.media && product.media.length > 0 
-    ? product.media[0].url 
+  const mainImage = product.images && product.images.length > 0 
+    ? product.images[0].url 
     : "/placeholder.svg"
+
+  const mainImageAlt = product.images && product.images.length > 0
+    ? product.images[0].alt_text || product.name
+    : product.name
 
   const statusDisplay = {
     'in_stock': 'En Stock',
@@ -95,7 +99,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {mainImage ? (
           <Image 
             src={mainImage} 
-            alt={product.media?.[0]?.alt || product.name}
+            alt={mainImageAlt}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105" 
           />

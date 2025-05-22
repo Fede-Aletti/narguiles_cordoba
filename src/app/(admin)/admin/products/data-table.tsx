@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -11,8 +11,9 @@ import {
   useReactTable,
   ColumnFiltersState,
   getFilteredRowModel,
+  VisibilityState,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, QueryClient, type QueryKey } from "@tanstack/react-query";
 
 import {
   Table,
@@ -24,8 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fetchProducts } from "@/lib/queries/product-queries"; // Ajusta la ruta
-import type { ProductFormData, ProductRow } from "@/types/product"; // Ajusta la ruta
+import type { IProduct } from "@/interfaces/product"; // Use IProduct directly
 import {
   Dialog,
   DialogHeader,
@@ -38,83 +38,96 @@ import { PlusCircle } from "lucide-react";
 import { ProductForm } from "./product-form";
 import { ProductSheet } from "./product-sheet";
 import { globalFilterFn } from "./columns";
+import { ProductRow } from "@/types/product";
+import { fetchFullProducts } from "@/lib/queries/product-queries"; // Ensure this is imported
+// import { DataTablePagination } from "@/components/data-table-pagination"; // Commented out
+// import { DataTableViewOptions } from "@/components/data-table-view-options"; // Commented out
 
-interface DataTableProps<TData extends ProductRow, TValue> {
-  columns: ColumnDef<TData, TValue>[];
+interface DataTableProps<TValue> {
+  columns: ColumnDef<IProduct, TValue>[];
+  initialData: IProduct[];
+  errorInitial?: Error | null;
 }
 
-export function ProductsDataTable<TData extends ProductRow, TValue>({
-  columns,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [globalFilterValue, setGlobalFilterValue] = React.useState('')
-
-  const [editingProduct, setEditingProduct] = React.useState<TData | null>(
-    null
-  );
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-
-  // Efecto para escuchar el evento de edición
-  React.useEffect(() => {
-    const handleEditProduct = (e: any) => {
-      setEditingProduct(e.detail);
-      setSheetOpen(true); // Abre el Sheet automáticamente
-    };
-
-    window.addEventListener("EDIT_PRODUCT", handleEditProduct);
-    return () => {
-      window.removeEventListener("EDIT_PRODUCT", handleEditProduct);
-    };
-  }, []);
+export function ProductsDataTable<TValue>({ 
+  columns, 
+  initialData, 
+  errorInitial 
+}: DataTableProps<TValue>) {
+  const queryClient = useQueryClient(); // Correct usage
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [globalFilterValue, setGlobalFilterValue] = React.useState('');
+  const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const {
-    data: productsData,
-    isLoading,
-    error,
-  } = useQuery<TData[]>({
+    data: tableData = [],
+    isLoading: queryIsLoading,
+    error: queryError,
+  } = useQuery<IProduct[], Error, IProduct[], QueryKey>({
     queryKey: ["products"],
-    queryFn: fetchProducts as () => Promise<TData[]>,
+    queryFn: fetchFullProducts,
+    initialData: initialData,
+    staleTime: Infinity,
   });
 
+  const effectiveIsLoading = queryIsLoading && tableData.length === 0 && initialData.length === 0;
+  const effectiveError = queryError;
+  
+  const dataForTable = tableData.length > 0 ? tableData : initialData;
+
   const table = useReactTable({
-    data: productsData ?? [],
+    data: dataForTable,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row, id, filterValue) => {
-      return globalFilterFn(row.original, id, String(filterValue));
+      return globalFilterFn(row.original as IProduct, id, String(filterValue));
     },
     state: {
       sorting,
       columnFilters,
+      columnVisibility,
+      rowSelection,
       globalFilter: globalFilterValue,
     },
-    onGlobalFilterChange: setGlobalFilterValue,
+    meta: {
+      editProduct: (product: IProduct) => {
+        setEditingProduct(product);
+        setSheetOpen(true);
+      }
+    }
   });
 
-  if (isLoading) return <div>Cargando productos...</div>;
-  if (error) return <div>Error al cargar productos: {error.message}</div>;
-  if (!productsData) return <div>No se encontraron productos.</div>;
+  useEffect(() => {
+    if (!sheetOpen) {
+      setEditingProduct(null);
+    }
+  }, [sheetOpen]);
+
+  if (effectiveIsLoading) return <div className="text-center p-4">Cargando productos...</div>;
+  if (effectiveError) return <div className="text-center p-4 text-red-600">Error al cargar productos: {effectiveError.message}</div>;
+  if (!dataForTable.length) return <div className="text-center p-4">No se encontraron productos.</div>;
 
   return (
-    <div>
-      <div className="flex items-center py-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <Input
-          placeholder="Filtrar por nombre..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
+          placeholder="Filtrar todos los campos..."
+          value={globalFilterValue ?? ''}
+          onChange={event => setGlobalFilterValue(event.target.value)}
           className="max-w-sm"
-          aria-label="Filter products by name"
         />
+        {/* <DataTableViewOptions table={table} /> */}{/* Commented out */}
       </div>
       <div className="rounded-md border">
         <Table>
@@ -166,36 +179,15 @@ export function ProductsDataTable<TData extends ProductRow, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          aria-label="Go to previous page"
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          aria-label="Go to next page"
-        >
-          Siguiente
-        </Button>
-      </div>
 
-      {editingProduct && (
-        <ProductSheet
-          productData={editingProduct}
-          isEditing={true}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          key={`edit-product-${editingProduct.id}`}
-        />
-      )}
+      {/* <DataTablePagination table={table} /> */}{/* Commented out */}
+
+      <ProductSheet
+        productData={editingProduct ? (editingProduct as unknown as ProductRow) : undefined}
+        isEditing={!!editingProduct}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
     </div>
   );
 }

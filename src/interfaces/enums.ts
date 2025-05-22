@@ -1,13 +1,52 @@
-export type UserRole = 'superadmin' | 'admin' | 'marketing' | 'client';
-export type GenderType = 'male' | 'female' | 'other' | 'prefer_not_to_say';
-export type ProductStatus = 'in_stock' | 'out_of_stock' | 'running_low';
-export type OrderStatus = 'in_cart' | 'placed' | 'confirmed' | 'processed' | 'pickup' | 'delivered';
+export enum UserRole {
+  SUPERADMIN = 'superadmin',
+  ADMIN = 'admin',
+  MARKETING = 'marketing',
+  CLIENT = 'client'
+}
 
-export const PRODUCT_STATUS_VALUES: ProductStatus[] = ['in_stock', 'out_of_stock', 'running_low'];
+export enum GenderType {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+  PREFER_NOT_TO_SAY = 'prefer_not_to_say'
+}
+
+export enum ProductStatus {
+  IN_STOCK = 'in_stock',
+  OUT_OF_STOCK = 'out_of_stock',
+  RUNNING_LOW = 'running_low'
+}
+
+export enum OrderStatus {
+  IN_CART = 'in_cart',
+  PLACED = 'placed',
+  CONFIRMED = 'confirmed',
+  PROCESSED = 'processed',
+  PICKUP = 'pickup',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered'
+}
+
+export const PRODUCT_STATUS_VALUES: ProductStatus[] = [
+  ProductStatus.IN_STOCK,
+  ProductStatus.OUT_OF_STOCK,
+  ProductStatus.RUNNING_LOW
+];
 
 export const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
-  { value: 'in_stock', label: 'En Stock' },
-  { value: 'out_of_stock', label: 'Agotado' },
-  { value: 'running_low', label: 'Poco Stock' },
+  { value: ProductStatus.IN_STOCK, label: 'En Stock' },
+  { value: ProductStatus.OUT_OF_STOCK, label: 'Sin Stock' },
+  { value: ProductStatus.RUNNING_LOW, label: 'Poco Stock' }
+];
+
+export const ORDER_STATUS_VALUES: OrderStatus[] = [
+  OrderStatus.IN_CART,
+  OrderStatus.PLACED,
+  OrderStatus.CONFIRMED,
+  OrderStatus.PROCESSED,
+  OrderStatus.PICKUP,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED
 ];
 

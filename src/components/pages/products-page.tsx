@@ -20,8 +20,8 @@ export function ProductsPage() {
   // UI state
   const [filteredProducts, setFilteredProducts] = useState(products)
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
-  const [selectedBrands, setSelectedBrands] = useState<number[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
   const [sortOption, setSortOption] = useState<string>("featured")
   const [showFilters, setShowFilters] = useState(false)
