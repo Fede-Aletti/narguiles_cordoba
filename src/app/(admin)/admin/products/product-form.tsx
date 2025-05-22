@@ -60,6 +60,7 @@ interface ProductFormProps {
 export function ProductForm({ setOpen, productData, isEditing = false }: ProductFormProps) {
   const queryClient = useQueryClient();
   const [selectedMedia, setSelectedMedia] = useState<Media[]>([]);
+  const [formReady, setFormReady] = useState(!isEditing);
 
   const { data: initialProductMedia } = useProductMediaItems(productData?.id);
 
@@ -72,9 +73,9 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           description: productData.description ?? null,
           stock: productData.stock,
           price: productData.price,
-          price_group_id: productData.price_group_id ?? undefined,
-          brand_id: productData.brand_id,
-          category_id: productData.category_id,
+          price_group_id: productData.price_group_id ?? null,
+          brand_id: productData.brand_id ?? null,
+          category_id: productData.category_id ?? null,
           status: productData.status as ProductStatus,
           selectedMediaIds: productData.selectedMediaIds ?? [],
         }
@@ -85,8 +86,8 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           stock: 0,
           price: null,
           price_group_id: null,
-          brand_id: null as string | null,
-          category_id: null as string | null,
+          brand_id: null,
+          category_id: null,
           status: PRODUCT_STATUS_OPTIONS[0].value,
           selectedMediaIds: [],
         },
@@ -117,7 +118,36 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
     queryFn: fetchPriceGroupsForSelect,
   });
 
+  const isLoading = isLoadingCategories || isLoadingBrands || isLoadingPriceGroups;
+
+  useEffect(() => {
+    if (isEditing && productData && !isLoading) {
+      console.log("Datos cargados, estableciendo valores del formulario:", {
+        price_group_id: productData.price_group_id,
+        brand_id: productData.brand_id,
+        category_id: productData.category_id
+      });
+      
+      form.setValue('price_group_id', productData.price_group_id ?? null);
+      form.setValue('brand_id', productData.brand_id ?? null);
+      form.setValue('category_id', productData.category_id ?? null);
+      
+      setFormReady(true);
+    }
+  }, [isEditing, productData, isLoading, form]);
+
   const selectedPriceGroupId = form.watch("price_group_id");
+
+  useEffect(() => {
+    if (isEditing) {
+      const values = form.getValues();
+      console.log("Valores actuales del formulario:", {
+        price_group_id: values.price_group_id,
+        brand_id: values.brand_id,
+        category_id: values.category_id
+      });
+    }
+  }, [isEditing, selectedPriceGroupId, form]);
 
   useEffect(() => {
     if (selectedPriceGroupId && priceGroups) {
@@ -159,9 +189,9 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         description: values.description === undefined ? null : values.description,
         stock: values.stock,
         price: values.price,
-        price_group_id: values.price_group_id === undefined ? null : values.price_group_id,
-        brand_id: values.brand_id === undefined ? null : values.brand_id,
-        category_id: values.category_id === undefined ? null : values.category_id,
+        price_group_id: values.price_group_id ?? null,
+        brand_id: values.brand_id ?? null,
+        category_id: values.category_id ?? null,
         status: values.status as ProductStatus,
         selectedMediaIds: values.selectedMediaIds ?? [],
       };
@@ -189,9 +219,9 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         description: values.description === undefined ? null : values.description,
         stock: values.stock,
         price: values.price,
-        price_group_id: values.price_group_id === undefined ? null : values.price_group_id,
-        brand_id: values.brand_id === undefined ? null : values.brand_id,
-        category_id: values.category_id === undefined ? null : values.category_id,
+        price_group_id: values.price_group_id ?? null,
+        brand_id: values.brand_id ?? null,
+        category_id: values.category_id ?? null,
         status: values.status as ProductStatus,
         selectedMediaIds: values.selectedMediaIds ?? [],
       };
@@ -283,31 +313,40 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         <FormField
           control={form.control}
           name="price_group_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Grupo de Precios (Opcional)</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un grupo de precios" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="-">Ninguno</SelectItem>
-                  {priceGroups?.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name} ({group.price ? `$${group.price}` : 'Precio variable'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Si seleccionas un grupo, el precio se actualizará automáticamente. 
-                Puedes sobrescribirlo manualmente abajo.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const valueExists = priceGroups?.some(group => group.id === field.value);
+            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
+            
+            return (
+              <FormItem>
+                <FormLabel>Grupo de Precios (Opcional)</FormLabel>
+                <Select 
+                  disabled={isLoadingPriceGroups}
+                  onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                  value={fieldValue}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingPriceGroups ? "Cargando..." : "Selecciona un grupo de precios"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="null">Ninguno</SelectItem>
+                    {priceGroups?.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name} ({group.price ? `$${group.price}` : 'Precio variable'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Si seleccionas un grupo, el precio se actualizará automáticamente. 
+                  Puedes sobrescribirlo manualmente abajo.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
@@ -330,53 +369,71 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         <FormField
           control={form.control}
           name="brand_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marca</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una marca" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="-">-- Sin marca --</SelectItem>
-                  {brands?.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const valueExists = brands?.some(brand => brand.id === field.value);
+            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
+            
+            return (
+              <FormItem>
+                <FormLabel>Marca</FormLabel>
+                <Select 
+                  disabled={isLoadingBrands}
+                  onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                  value={fieldValue}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingBrands ? "Cargando..." : "Selecciona una marca"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="null">-- Sin marca --</SelectItem>
+                    {brands?.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
           control={form.control}
           name="category_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Categoría</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined} value={field.value ?? undefined}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="-">-- Sin categoría --</SelectItem>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const valueExists = categories?.some(category => category.id === field.value);
+            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
+            
+            return (
+              <FormItem>
+                <FormLabel>Categoría</FormLabel>
+                <Select 
+                  disabled={isLoadingCategories}
+                  onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                  value={fieldValue}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingCategories ? "Cargando..." : "Selecciona una categoría"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="null">-- Sin categoría --</SelectItem>
+                    {categories?.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
@@ -437,8 +494,20 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
           </FormDescription>
         </FormItem>
 
-        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-          {isEditing ? 'Actualizar Producto' : 'Crear Producto'}
+        <Button 
+          type="submit" 
+          disabled={!formReady || isLoading || createMutation.isPending || updateMutation.isPending}
+          className="w-full"
+        >
+          {isLoading ? (
+            <span>Cargando datos...</span>
+          ) : createMutation.isPending || updateMutation.isPending ? (
+            <span>Guardando...</span>
+          ) : isEditing ? (
+            'Actualizar Producto'
+          ) : (
+            'Crear Producto'
+          )}
         </Button>
       </form>
     </Form>

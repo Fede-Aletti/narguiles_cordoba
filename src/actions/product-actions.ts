@@ -88,9 +88,9 @@ export async function createProductAction(formData: ProductFormData): Promise<{ 
     description: formData.description || null,
     stock: Number(formData.stock),
     price: formData.price ? Number(formData.price) : null,
-    price_group_id: formData.price_group_id || null,
-    brand_id: formData.brand_id,
-    category_id: formData.category_id,
+    price_group_id: formData.price_group_id === "null" ? null : formData.price_group_id,
+    brand_id: formData.brand_id === "null" ? null : formData.brand_id,
+    category_id: formData.category_id === "null" ? null : formData.category_id,
     status: formData.status,
   };
   
@@ -140,9 +140,9 @@ export async function updateProductAction(productId: string, formData: ProductFo
     description: formData.description || null,
     stock: Number(formData.stock),
     price: formData.price ? Number(formData.price) : null,
-    price_group_id: formData.price_group_id || null,
-    brand_id: formData.brand_id,
-    category_id: formData.category_id,
+    price_group_id: formData.price_group_id === "null" ? null : formData.price_group_id,
+    brand_id: formData.brand_id === "null" ? null : formData.brand_id,
+    category_id: formData.category_id === "null" ? null : formData.category_id,
     status: formData.status,
     updated_at: new Date().toISOString(),
   };
