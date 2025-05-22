@@ -14,11 +14,13 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders }: OrdersTableProps) {
-  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
-  const toggleExpand = (orderId: number) => {
+  const toggleExpand = (orderId: string) => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
+
+  console.log(orders);
 
   return (
     <div className="bg-gray-900 rounded-lg shadow overflow-hidden">
@@ -37,16 +39,16 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             <>
               <TableRow 
                 key={order.id} 
-                onClick={() => toggleExpand(order.id)} 
+                onClick={() => toggleExpand(order.id)}
                 className="cursor-pointer hover:bg-gray-800/50 border-b border-gray-800 data-[state=expanded]:bg-gray-800"
                 data-state={expandedOrderId === order.id ? "expanded" : "collapsed"}
               >
-                <TableCell className="font-medium text-gold-400">#{order.id}</TableCell>
+                <TableCell className="font-medium text-gold-400">#{order.id.substring(0,8)}</TableCell>
                 <TableCell className="text-gray-300">
                   {format(new Date(order.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
                 </TableCell>
                 <TableCell className="text-gray-300">{order.status_display}</TableCell>
-                <TableCell className="text-gray-300">${Number(order.total).toFixed(2)}</TableCell>
+                <TableCell className="text-gray-300">${Number(order.total_amount).toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
                     {expandedOrderId === order.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

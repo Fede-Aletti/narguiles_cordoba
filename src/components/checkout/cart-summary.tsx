@@ -18,7 +18,7 @@ export function CartSummary({ cartItems, selectedAddressId }: CartSummaryProps) 
   const handleConfirm = () => {
     if (!selectedAddressId || cartItems.length === 0) return;
     createOrder(
-      { addressId: selectedAddressId, cartItems },
+      { addressId: selectedAddressId.toString(), cartItems },
       {
         onSuccess: (order) => {
           router.push('/pedidos');

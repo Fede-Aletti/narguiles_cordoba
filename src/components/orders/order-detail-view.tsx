@@ -70,7 +70,7 @@ export function OrderDetailView({ order }: OrderDetailViewProps) {
 
       <div className="flex justify-end items-center border-t border-gray-700 pt-4">
         <span className="text-lg text-white font-semibold mr-4">Total del Pedido:</span>
-        <span className="text-2xl text-gold-400 font-bold">${Number(order.total).toFixed(2)}</span>
+        <span className="text-2xl text-gold-400 font-bold">${Number(order.total_amount).toFixed(2)}</span>
       </div>
     </div>
   );

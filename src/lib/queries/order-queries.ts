@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store";
-import type { IOrder, IOrderItem } from "@/interfaces/order";
+import type { IOrder, IOrderItem, IOrderUser } from "@/interfaces/order";
 import type { IAddress } from "@/interfaces/address";
 import type { IProduct } from "@/interfaces/product";
 import type { IMediaItem } from "@/interfaces/media";
@@ -33,7 +33,7 @@ const orderStatusDisplayMapping: Record<OrderStatus, string> = {
 
 // Select only essential product fields for order items to reduce data transfer
 const ORDER_ITEM_PRODUCT_SELECT = 
-  'id, name, slug, stock, price, status, created_at, product_media:product_media(media:media_id(id, url, alt))';
+  'id, name, slug, stock, price, status, created_at, brand:brand_id(name), product_media:product_media(media:media_id(id, url, alt_text))';
 
 export async function fetchUserOrdersWithDetails(): Promise<EnrichedOrder[]> {
   const supabase = createClient();
@@ -200,5 +200,118 @@ export function useCreateOrder() {
       queryClient.invalidateQueries({ queryKey: ["user-orders-with-details"] });
       queryClient.invalidateQueries({ queryKey: ["user-cart"] }); 
     },
+  });
+}
+
+// Interface for pagination, sorting, and filtering parameters
+export interface AdminOrdersParams {
+  pageIndex: number;
+  pageSize: number;
+  globalFilter?: string;
+  sorting?: { id: string; desc: boolean }[];
+  // TODO: Add columnFilters if needed
+}
+
+// Interface for the paginated response
+export interface PaginatedAdminOrdersResponse {
+  orders: EnrichedOrder[];
+  totalCount: number;
+  pageCount: number;
+}
+
+const ADMIN_ORDER_SELECT_QUERY = 
+  "id, created_at, status, total_amount, total_items, store_pickup, " +
+  "user:user_id(id, first_name, last_name, email), " +
+  "shipping_address:shipping_address_id(*), " +
+  // Order items are not fetched in the main list for performance, they are fetched in detail view
+  "order_items_count:order_item(count)"; // Get count of items for summary
+
+// Function to fetch orders for admin view with pagination, filtering, sorting
+export async function fetchAdminOrders(params: AdminOrdersParams): Promise<PaginatedAdminOrdersResponse> {
+  const supabase = createClient();
+  const { pageIndex, pageSize, globalFilter, sorting } = params;
+
+  let query = supabase
+    .from("order")
+    .select(ADMIN_ORDER_SELECT_QUERY, { count: "exact" })
+    .range(pageIndex * pageSize, (pageIndex + 1) * pageSize - 1);
+
+  if (globalFilter) {
+    query = query.or(
+      `id.ilike.%${globalFilter}%,` +
+      `user.first_name.ilike.%${globalFilter}%,` +
+      `user.last_name.ilike.%${globalFilter}%,` +
+      `user.email.ilike.%${globalFilter}%`
+    );
+  }
+
+  if (sorting && sorting.length > 0) {
+    sorting.forEach(sort => {
+      query = query.order(sort.id, { ascending: !sort.desc });
+    });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error("Error fetching admin orders:", error);
+    throw error;
+  }
+
+  const rawOrders = data as any[] || []; 
+
+  const orders = rawOrders.map(order => {
+    const orderItemsCount = (order.order_items_count && Array.isArray(order.order_items_count) && order.order_items_count[0]?.count) || 0;
+    
+    // Construct the EnrichedOrder object carefully
+    const enriched: EnrichedOrder = {
+      id: order.id as string,
+      created_at: order.created_at as string,
+      status: order.status as OrderStatus,
+      total_amount: order.total_amount as number | null,
+      store_pickup: order.store_pickup as boolean,
+      updated_at: order.updated_at as string | null,
+      deleted_at: order.deleted_at as string | null,      
+      user: order.user ? {
+        id: order.user.id as string,
+        first_name: order.user.first_name as string | null,
+        last_name: order.user.last_name as string | null,
+        email: order.user.email as string | null,
+      } : null,
+      shipping_address: order.shipping_address ? {
+        id: order.shipping_address.id as string,
+        street: order.shipping_address.street as string | null,
+        street_number: order.shipping_address.street_number as string | null,
+        city: order.shipping_address.city as string | null,
+        province: order.shipping_address.province as string | null,
+        postal_code: order.shipping_address.postal_code as string | null,
+        phone_number: order.shipping_address.phone_number as string | null,
+        // Ensure all IAddress fields are mapped if they exist on order.shipping_address
+        user_id: order.shipping_address.user_id as string | null,
+        created_at: order.shipping_address.created_at as string, // IAddress requires created_at
+        updated_at: order.shipping_address.updated_at as string | null,
+        deleted_at: order.shipping_address.deleted_at as string | null,
+      } : null,
+      order_items: [], // Items will be fetched on demand in detail view
+      total_items: orderItemsCount, 
+      status_display: orderStatusDisplayMapping[order.status as OrderStatus] || order.status,
+    };
+    return enriched;
+  });
+  
+  const totalCount = count || 0;
+  const pageCount = Math.ceil(totalCount / pageSize);
+
+  return { orders, totalCount, pageCount };
+}
+
+// React Query hook for admin orders
+export function useAdminOrders(params: AdminOrdersParams) {
+  return useQuery<PaginatedAdminOrdersResponse, Error>({
+    queryKey: ["admin-orders", params],
+    queryFn: () => fetchAdminOrders(params),
+    placeholderData: (previousData) => previousData,
   });
 }

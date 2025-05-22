@@ -40,9 +40,10 @@ export const useStore = create<StoreState>()(
       addToCart: (product, quantity = 1) =>
         set((state) => {
           const mainImage =
+            (product.images && product.images[0]?.url) || 
             product.image ||
-            (product.media && product.media[0]?.url) ||
             "/placeholder.svg";
+          
           const storeProduct: Product = {
             id: String(product.id),
             name: product.name,
@@ -52,9 +53,9 @@ export const useStore = create<StoreState>()(
             category:
               typeof product.category === "object" && product.category?.name
                 ? product.category.name
-                : product.category || "unknown",
+                : typeof product.category === 'string' ? product.category : "unknown",
             stock: product.stock,
-            maxStock: product.stock || product.maxStock || 99,
+            maxStock: product.stock || 99,
           };
           const existingItem = state.cartItems.find(
             (item) => item.product.id === storeProduct.id
@@ -90,7 +91,7 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           cartItems: state.cartItems.map((item) => {
             if (item.product.id === productId) {
-              const maxStock = item.product.maxStock || 99;
+              const maxStock = item.product.stock || 99;
               return {
                 ...item,
                 quantity: Math.max(1, Math.min(quantity, maxStock)),

@@ -25,14 +25,14 @@ export function ProductDetail({ slug }: ProductDetailProps) {
   }
 
   // Convert media to carousel format
-  const images = product.media && product.media.length > 0
-    ? product.media.map((media, i) => ({
-        id: media.id,
-        src: media.url,
-        alt: media.alt || `${product.name} - Image ${i + 1}`,
+  const carouselImages = product.images && product.images.length > 0
+    ? product.images.map((image, i) => ({
+        id: image.id,
+        src: image.url,
+        alt: image.alt_text || `${product.name} - Image ${i + 1}`,
       }))
     : Array(1).fill(null).map((_, i) => ({
-        id: i + 1,
+        id: `placeholder-${i + 1}`,
         src: `/placeholder.svg?height=600&width=600&text=No+Product+Image`,
         alt: `${product.name} - No Image`,
       }));
@@ -68,7 +68,7 @@ export function ProductDetail({ slug }: ProductDetailProps) {
       <div className="container px-4 py-8 md:px-6 md:py-12">
         <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
           {/* Product Images */}
-          <ProductImageCarousel images={images} />
+          <ProductImageCarousel images={carouselImages} />
 
           {/* Product Info */}
           <ProductInfo product={product} />

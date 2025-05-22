@@ -1,23 +1,31 @@
 "use client"
 
-import { useStore } from "@/lib/store"
+import { useShopProducts } from "@/lib/queries/shop-queries"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useRef } from "react"
 
 interface RelatedProductsProps {
-  currentProductId: number
-  category: string
+  currentProductId: string
+  categoryId: string | null
 }
 
-export function RelatedProducts({ currentProductId, category }: RelatedProductsProps) {
-  const { products } = useStore()
+export function RelatedProducts({ currentProductId, categoryId }: RelatedProductsProps) {
+  const { data: allProducts, isLoading } = useShopProducts()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  if (isLoading) {
+    return null
+  }
+
+  if (!categoryId || !allProducts) {
+    return null
+  }
+
   // Filter products by category and exclude current product
-  const relatedProducts = products
-    .filter((product) => product.category === category && product.id !== currentProductId)
+  const relatedProducts = allProducts
+    .filter((product) => product.category?.id === categoryId && product.id !== currentProductId)
     .slice(0, 6)
 
   const scroll = (direction: "left" | "right") => {

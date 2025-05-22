@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import { fetchOrders } from "@/actions/order-actions";
 import type { IOrder } from "@/interfaces/order";
 import { OrdersTable } from "./components/orders-table";
 
@@ -23,28 +22,13 @@ export default async function AdminOrdersPage() {
     redirect("/unauthorized");
   }
 
-  let initialOrders: IOrder[] = [];
-  let errorLoadingOrders: string | null = null;
-
-  try {
-    initialOrders = await fetchOrders();
-  } catch (e: any) {
-    console.error("Failed to fetch orders:", e.message);
-    errorLoadingOrders = e.message;
-  }
-
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Gestión de Órdenes</h1>
         {/* TODO: Add any primary action button if needed, e.g., export orders */}
       </div>
-      {errorLoadingOrders && (
-        <div className="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50" role="alert">
-          <span className="font-medium">Error:</span> {errorLoadingOrders}
-        </div>
-      )}
-      <OrdersTable initialOrders={initialOrders} />
+      <OrdersTable />
       
       {/* TODO: Section for charts and metrics */}
       <div className="mt-10">

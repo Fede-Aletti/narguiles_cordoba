@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Heart, ShoppingCart, Star, Truck, Shield, Award, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ShopProduct } from "@/lib/queries/shop-queries";
+import { IShopProduct } from "@/lib/queries/shop-queries";
 import { ProductStatus } from "@/interfaces/enums";
 import { useUserFavoriteProductIds, useToggleFavorite, useProductFavoriteCount } from "@/lib/queries/favorite-queries";
 import { useRouter, usePathname } from "next/navigation";
@@ -15,7 +15,7 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 
 interface ProductInfoProps {
-  product: ShopProduct;
+  product: IShopProduct;
 }
 
 export function ProductInfo({ product }: ProductInfoProps) {

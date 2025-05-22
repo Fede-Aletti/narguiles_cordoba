@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Expand, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface ProductImage {
-  id: number
+  id: string
   src: string
   alt: string
 }

@@ -1,35 +1,31 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
   ColumnFiltersState,
+  PaginationState,
+  FilterFn,
   getFilteredRowModel,
-  VisibilityState,
-  ExpandedState,
-  getExpandedRowModel,
 } from "@tanstack/react-table";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import type { IOrder, IOrderItem } from "@/interfaces/order";
-import { OrderStatus, ORDER_STATUS_VALUES } from "@/interfaces/enums";
-import { ChevronDown, ChevronRight, Edit } from 'lucide-react';
-// TODO: Import actions for updating order status when created
-// import { updateOrderStatusAction } from "@/actions/order-actions";
-
-interface OrdersTableProps {
-  initialOrders: IOrder[];
-}
+import type { IOrder } from "@/interfaces/order";
+import { OrderStatus } from "@/interfaces/enums";
+import { Edit } from 'lucide-react';
+import { OrderDetailSheet } from "@/components/admin/orders/order-detail-sheet";
+import { EnrichedOrder, useAdminOrders, AdminOrdersParams } from "@/lib/queries/order-queries";
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '../../../../../hooks/use-debounce';
 
 // Helper to get badge variant based on status
 const getOrderStatusBadgeVariant = (status: OrderStatus): 'default' | 'secondary' | 'destructive' | 'outline' | null | undefined => {
@@ -40,11 +36,11 @@ const getOrderStatusBadgeVariant = (status: OrderStatus): 'default' | 'secondary
     case OrderStatus.CONFIRMED:
       return "default";
     case OrderStatus.PROCESSED:
-      return "default"; // Mapped to default, consider custom styling if needed
+      return "default";
     case OrderStatus.PICKUP:
-      return "secondary"; // Mapped to secondary, consider custom styling if needed
+      return "secondary";
     case OrderStatus.DELIVERED:
-      return "default"; // Mapped to default (or could be a success-like custom style)
+      return "default";
     default:
       return "outline";
   }
@@ -56,40 +52,77 @@ const formatCurrency = (amount: number | null | undefined) => {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
 };
 
-export function OrdersTable({ initialOrders }: OrdersTableProps) {
+// Función simple para convertir una orden a texto plano para búsqueda
+const orderToSearchableText = (order: EnrichedOrder): string => {
+  // Convertimos todos los campos relevantes a string y los unimos
+  const searchableFields = [
+    order.id,
+    order.user?.first_name || '',
+    order.user?.last_name || '',
+    order.user?.email || '',
+    order.status,
+    order.status_display,
+    new Date(order.created_at).toLocaleDateString(),
+    String(order.total_amount),
+    String(order.total_items)
+  ];
+  
+  return searchableFields
+    .filter(Boolean) // Eliminar campos falsy (null, undefined, etc)
+    .map(field => String(field).toLowerCase()) // Convertir todo a string minúscula
+    .join(' '); // Unir con espacios
+};
+
+// Función de filtrado global simple
+const globalFilterFn: FilterFn<EnrichedOrder> = (row, columnId, filterValue) => {
+  // Si no hay valor de filtro, mostrar la fila
+  if (!filterValue || typeof filterValue !== 'string') return true;
+  
+  // Convertir la fila a texto plano y verificar si incluye el término de búsqueda
+  const searchText = orderToSearchableText(row.original);
+  return searchText.includes(filterValue.toLowerCase());
+};
+
+export function OrdersTable() {
   const queryClient = useQueryClient();
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
 
-  // TODO: Mutation for updating order status
-  /*
-  const updateStatusMutation = useMutation({
-    mutationFn: updateOrderStatusAction, // Assuming this action takes { orderId: string, status: OrderStatus }
-    onSuccess: () => {
-      toast.success("Estado de la orden actualizado.");
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    },
-    onError: (error: any) => {
-      toast.error(`Error al actualizar estado: ${error.message}`);
-    }
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
   });
-  */
 
-  const columns: ColumnDef<IOrder>[] = useMemo(() => [
-    {
-      id: 'expander',
-      header: () => null,
-      cell: ({ row }) => (
-        row.getCanExpand() ? (
-          <Button variant="ghost" size="icon" onClick={row.getToggleExpandedHandler()} aria-label={row.getIsExpanded() ? "Colapsar fila" : "Expandir fila"}>
-            {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-        ) : null
-      ),
-    },
-    { accessorKey: "id", header: "ID Orden", cell: ({row}) => <div className="truncate w-28" title={row.original.id}>{row.original.id}</div> },
+  const adminOrderParams: AdminOrdersParams = {
+    pageIndex,
+    pageSize,
+    sorting,
+    // Ya no pasamos globalFilter a la query
+  };
+
+  const { data: paginatedData, isLoading, isError, error, isFetching } = useAdminOrders(adminOrderParams);
+
+  const ordersData = useMemo(() => paginatedData?.orders || [], [paginatedData]);
+  const totalCount = useMemo(() => paginatedData?.totalCount || 0, [paginatedData]);
+  const pageCount = useMemo(() => paginatedData?.pageCount || 0, [paginatedData]);
+
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedOrderForSheet, setSelectedOrderForSheet] = useState<EnrichedOrder | null>(null);
+
+  const handleOpenSheet = (order: EnrichedOrder) => {
+    setSelectedOrderForSheet(order);
+    setIsSheetOpen(true);
+  };
+
+  const handleOrderSheetUpdate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-orders', adminOrderParams] });
+  };
+
+  const columns: ColumnDef<EnrichedOrder>[] = useMemo(() => [
+    { accessorKey: "id", header: "ID Orden", cell: ({row}) => <div className="truncate w-28" title={row.original.id}>{row.original.id.substring(0,8)}</div> },
     {
       accessorKey: "user",
       header: "Cliente",
@@ -102,16 +135,16 @@ export function OrdersTable({ initialOrders }: OrdersTableProps) {
       accessorKey: "status",
       header: "Estado",
       cell: ({ row }) => (
-        <Badge variant={getOrderStatusBadgeVariant(row.original.status)} className="capitalize">
-          {row.original.status.replace('_', ' ')}
+        <Badge variant={getOrderStatusBadgeVariant(row.original.status as OrderStatus)} className="capitalize">
+          {row.original.status_display || row.original.status.replace('_', ' ')}
         </Badge>
       ),
-      // TODO: Add filter for status
     },
     { 
       accessorKey: "total_amount", 
       header: "Total", 
-      cell: ({row}) => formatCurrency(row.original.total_amount) 
+      cell: ({row}) => formatCurrency(row.original.total_amount), 
+      enableSorting: true,
     },
     {
       accessorKey: "total_items",
@@ -121,93 +154,95 @@ export function OrdersTable({ initialOrders }: OrdersTableProps) {
       accessorKey: "created_at",
       header: "Fecha Creación",
       cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+      enableSorting: true,
     },
     {
       id: 'actions',
       header: "Acciones",
       cell: ({ row }) => (
-        <Button variant="outline" size="sm" onClick={() => console.log('Edit order', row.original.id)} aria-label="Editar orden">
+        <Button variant="outline" size="sm" onClick={() => handleOpenSheet(row.original)} aria-label="Ver/Editar orden">
           <Edit className="h-4 w-4 mr-1" /> Ver/Editar
         </Button>
-        // TODO: Add dropdown for changing status
       ),
     },
   ], []);
 
   const table = useReactTable({
-    data: initialOrders,
+    data: ordersData,
     columns,
     state: {
       sorting,
       columnFilters,
-      expanded,
-      globalFilter,
+      globalFilter: debouncedSearch,
+      pagination: { pageIndex, pageSize },
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onExpandedChange: setExpanded,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: setSearch,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getRowCanExpand: () => true, // Allow all rows to expand
+    globalFilterFn: globalFilterFn,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: false,
+    pageCount: pageCount,
+    rowCount: totalCount,
   });
 
-  const renderSubComponent = ({ row }: { row: any /* Row<IOrder> */ }) => {
-    const order = row.original as IOrder;
+  if (isLoading && !paginatedData) {
     return (
-      <div className="p-4 bg-gray-100 dark:bg-gray-800">
-        <h5 className="font-semibold mb-2">Detalle de la Orden:</h5>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <div><strong>ID Orden:</strong> {order.id}</div>
-            <div><strong>Cliente:</strong> {order.user?.first_name} {order.user?.last_name} ({order.user?.email || 'N/A'})</div>
-            <div><strong>Estado:</strong> {order.status}</div>
-            <div><strong>Total:</strong> {formatCurrency(order.total_amount)} ({order.total_items} items)</div>
-            <div><strong>Fecha:</strong> {new Date(order.created_at).toLocaleString()}</div>
-            <div><strong>Recoge en tienda:</strong> {order.store_pickup ? 'Sí' : 'No'}</div>
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-1/3 bg-gray-700" />
+        <div className="rounded-md border border-gray-700">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b-gray-700">
+                {columns.map((col, idx) => <TableHead key={idx} className="h-12 text-gray-300"><Skeleton className="h-5 w-3/4 bg-gray-600" /></TableHead>)}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(pageSize)].map((_, i) => (
+                <TableRow key={i} className="border-b-gray-700">
+                  {columns.map((col, j) => <TableCell key={j}><Skeleton className="h-5 w-full bg-gray-600" /></TableCell>)}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-        {order.shipping_address && (
-            <div className="mb-3">
-                <strong>Dirección de envío:</strong> 
-                {order.shipping_address.street} {order.shipping_address.street_number}, 
-                {order.shipping_address.city}, {order.shipping_address.province} 
-                ({order.shipping_address.postal_code})
-            </div>
-        )}
-        <h6 className="font-medium mt-3 mb-1">Items:</h6>
-        {order.order_items && order.order_items.length > 0 ? (
-          <ul className="list-disc pl-5 space-y-1">
-            {order.order_items.map(item => (
-              <li key={item.id}>
-                {item.quantity} x {item.product?.name || 'Producto no disponible'} @ {formatCurrency(item.price_at_purchase)}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No hay items en esta orden.</p>
-        )}
+        <Skeleton className="h-10 w-1/4 ml-auto bg-gray-700" />
       </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Buscar orden... (ID, cliente, email)"
-        value={globalFilter ?? ''}
-        onChange={(event) => setGlobalFilter(event.target.value)}
-        className="max-w-sm"
+        placeholder="Buscar orden... (ID, cliente, email, estado, fecha, monto)"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        className="max-w-sm bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:ring-gold-500 focus:border-gold-500"
       />
-      <div className="rounded-md border">
+      {isFetching && <div className="text-sm text-gold-400">Actualizando datos...</div>}
+      {isError && <div className="text-sm text-red-500">Error al cargar órdenes: {error?.message}</div>}
+      <div className="rounded-md border border-gray-700">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="border-b-gray-700">
                 {headerGroup.headers.map(header => (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
+                  <TableHead 
+                    key={header.id} 
+                    colSpan={header.colSpan} 
+                    className="text-gray-300 cursor-pointer hover:bg-gray-700"
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {{
+                      asc: ' ↑',
+                      desc: ' ↓',
+                    }[header.column.getIsSorted() as string] ?? null}
                   </TableHead>
                 ))}
               </TableRow>
@@ -216,52 +251,77 @@ export function OrdersTable({ initialOrders }: OrdersTableProps) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map(row => (
-                <React.Fragment key={row.id}>
-                  <TableRow data-state={row.getIsSelected() && "selected"}>
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                  {row.getIsExpanded() && (
-                    <TableRow>
-                      <TableCell colSpan={row.getVisibleCells().length}>
-                        {renderSubComponent({ row })}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </React.Fragment>
+                <TableRow 
+                  key={row.original.id}
+                  data-state={row.getIsSelected() && "selected"} 
+                  className="border-b-gray-700 hover:bg-gray-800 transition-colors"
+                >
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id} className="text-gray-300">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No se encontraron órdenes.
+              <TableRow className="border-b-gray-700">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
+                  {isError ? "Error al cargar" : "No se encontraron órdenes."}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      {/* TODO: Pagination */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Siguiente
-        </Button>
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <span className="text-sm text-gray-400">
+          Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()} ({totalCount} órdenes)
+        </span>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+            className="text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white"
+          >
+            Primera
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white"
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white"
+          >
+            Siguiente
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+            className="text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white"
+          >
+            Última
+          </Button>
+        </div>
       </div>
+      <OrderDetailSheet 
+        order={selectedOrderForSheet} 
+        isOpen={isSheetOpen} 
+        onOpenChange={setIsSheetOpen} 
+        onOrderUpdate={handleOrderSheetUpdate} 
+      />
     </div>
   );
 } 

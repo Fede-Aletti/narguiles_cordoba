@@ -3,16 +3,16 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Brand } from "@/interfaces/brand";
-import { Category } from "@/interfaces/category";
+import { IBrand } from "@/interfaces/brand";
+import { ICategory } from "@/interfaces/category";
 
 interface ProductFiltersProps {
-  categories: Category[];
-  selectedCategories: number[];
-  onCategoryChange: (categories: number[]) => void;
-  brands: Brand[];
-  selectedBrands: number[];
-  onBrandChange: (brands: number[]) => void;
+  categories: ICategory[];
+  selectedCategories: string[];
+  onCategoryChange: (categories: string[]) => void;
+  brands: IBrand[];
+  selectedBrands: string[];
+  onBrandChange: (brands: string[]) => void;
   priceRange: [number, number];
   maxPrice: number;
   onPriceRangeChange: (range: [number, number]) => void;
@@ -30,7 +30,7 @@ export function ProductFilters({
   onPriceRangeChange,
 }: ProductFiltersProps) {
   // Handle category checkbox change
-  const handleCategoryChange = (categoryId: number) => {
+  const handleCategoryChange = (categoryId: string) => {
     if (selectedCategories.includes(categoryId)) {
       onCategoryChange(selectedCategories.filter((id) => id !== categoryId));
     } else {
@@ -39,7 +39,7 @@ export function ProductFilters({
   };
 
   // Handle brand checkbox change
-  const handleBrandChange = (brandId: number) => {
+  const handleBrandChange = (brandId: string) => {
     if (selectedBrands.includes(brandId)) {
       onBrandChange(selectedBrands.filter((id) => id !== brandId));
     } else {

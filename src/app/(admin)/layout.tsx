@@ -38,6 +38,7 @@ export default async function AdminLayout({
             <Link href="/admin/catalogo" className="hover:text-blue-600">Catálogo</Link>
             <Link href="/admin/media" className="hover:text-blue-600">Media</Link>
             <Link href="/admin/price-groups" className="hover:text-blue-600">Precios</Link>
+            <Link href="/admin/orders" className="hover:text-blue-600">Pedidos</Link>
             {/* Más enlaces según necesites */}
           </nav>
         </div>

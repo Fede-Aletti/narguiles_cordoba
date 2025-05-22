@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import type { Product } from "@/lib/store"
+import type { IShopProduct } from "@/lib/queries/shop-queries"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProductReviews } from "./product-review"
 
 
 interface ProductTabsProps {
-  product: Product
+  product: IShopProduct
 }
 
 export function ProductTabs({ product }: ProductTabsProps) {
@@ -25,7 +25,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
           <TabsContent value="description" className="mt-6">
             <div className="prose prose-invert max-w-none">
               <h3 className="text-2xl font-serif font-bold text-white">Product Details</h3>
-              <p className="text-gray-400">{product.description}</p>
+              <p className="text-gray-400">{product.description || 'No description available.'}</p>
               <p className="text-gray-400">
                 Experience the epitome of luxury with our {product.name}. Designed for the discerning hookah enthusiast,
                 this piece combines traditional craftsmanship with modern innovation to deliver an unparalleled smoking
@@ -39,7 +39,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                 <li>Smooth draw and excellent smoke production for the perfect session</li>
                 <li>Easy to clean and maintain for consistent performance</li>
               </ul>
-              {product.category === "hookahs" && (
+              {product.category?.name?.toLowerCase() === "hookahs" && (
                 <>
                   <h4 className="text-xl font-serif font-bold text-white mt-6">The Perfect Draw</h4>
                   <p className="text-gray-400">
@@ -49,7 +49,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   </p>
                 </>
               )}
-              {product.category === "tobacco" && (
+              {product.category?.name?.toLowerCase() === "tobacco" && (
                 <>
                   <h4 className="text-xl font-serif font-bold text-white mt-6">Flavor Profile</h4>
                   <p className="text-gray-400">
@@ -71,21 +71,9 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   </tr>
                   <tr className="border-b border-gray-800">
                     <td className="py-4 pr-4 text-left font-medium text-white">Category</td>
-                    <td className="py-4 text-gray-400 capitalize">{product.category}</td>
+                    <td className="py-4 text-gray-400 capitalize">{product.category?.name || 'N/A'}</td>
                   </tr>
-                  {product.material && (
-                    <tr className="border-b border-gray-800">
-                      <td className="py-4 pr-4 text-left font-medium text-white">Material</td>
-                      <td className="py-4 text-gray-400 capitalize">{product.material}</td>
-                    </tr>
-                  )}
-                  {product.size && (
-                    <tr className="border-b border-gray-800">
-                      <td className="py-4 pr-4 text-left font-medium text-white">Size</td>
-                      <td className="py-4 text-gray-400 capitalize">{product.size}</td>
-                    </tr>
-                  )}
-                  {product.category === "hookahs" && (
+                  {product.category?.name?.toLowerCase() === "hookahs" && (
                     <>
                       <tr className="border-b border-gray-800">
                         <td className="py-4 pr-4 text-left font-medium text-white">Height</td>
@@ -105,7 +93,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                       </tr>
                     </>
                   )}
-                  {product.category === "tobacco" && (
+                  {product.category?.name?.toLowerCase() === "tobacco" && (
                     <>
                       <tr className="border-b border-gray-800">
                         <td className="py-4 pr-4 text-left font-medium text-white">Weight</td>
