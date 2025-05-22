@@ -7,6 +7,7 @@ export type Product = {
   description: string;
   price: number;
   image?: string;
+  slug: string;
   category: string;
   stock?: number;
   maxStock?: number;
@@ -50,6 +51,7 @@ export const useStore = create<StoreState>()(
             description: product.description || "",
             price: product.price || 0,
             image: mainImage,
+            slug: product.slug || "",
             category:
               typeof product.category === "object" && product.category?.name
                 ? product.category.name
