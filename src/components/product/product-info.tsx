@@ -243,7 +243,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       {/* Product Features */}
       <div className="space-y-4 rounded-lg bg-gray-900 p-4">
-        <div className="flex items-center space-x-3">
+        {/* <div className="flex items-center space-x-3">
           <Truck className="h-5 w-5 text-gold-400" />
           <div>
             <p className="text-sm font-medium text-white">Envío Gratis</p>
@@ -258,14 +258,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
               Cobertura completa para tu tranquilidad
             </p>
           </div>
-        </div>
+        </div> */}
         <div className="flex items-center space-x-3">
           <Award className="h-5 w-5 text-gold-400" />
           <div>
             <p className="text-sm font-medium text-white">
-              Autenticidad Garantizada
+              Experiencia Premium
             </p>
-            <p className="text-xs text-gray-400">100% productos originales</p>
+            <p className="text-xs text-gray-400">100% productos de calidad</p>
           </div>
         </div>
       </div>
@@ -275,7 +275,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
         <div className="flex justify-between">
           <span className="text-gray-500">SKU:</span>
           <span className="text-gray-400">
-            LH-{product.id.toString().padStart(4, "0")}
+            LH-{product.id.toString().padStart(4, "0").slice(0, 8)}
           </span>
         </div>
         <div className="flex justify-between">

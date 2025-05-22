@@ -24,6 +24,7 @@ export enum OrderStatus {
   CONFIRMED = 'confirmed',
   PROCESSED = 'processed',
   PICKUP = 'pickup',
+  SHIPPED = 'shipped',
   DELIVERED = 'delivered'
 }
 
@@ -45,6 +46,7 @@ export const ORDER_STATUS_VALUES: OrderStatus[] = [
   OrderStatus.CONFIRMED,
   OrderStatus.PROCESSED,
   OrderStatus.PICKUP,
+  OrderStatus.SHIPPED,
   OrderStatus.DELIVERED
 ];
 

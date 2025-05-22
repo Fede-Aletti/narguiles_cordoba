@@ -28,6 +28,7 @@ const orderStatusDisplayMapping: Record<OrderStatus, string> = {
   [OrderStatus.CONFIRMED]: "Confirmado",
   [OrderStatus.PROCESSED]: "Procesando",
   [OrderStatus.PICKUP]: "Listo para Retiro",
+  [OrderStatus.SHIPPED]: "Enviado",
   [OrderStatus.DELIVERED]: "Entregado",
 };
 

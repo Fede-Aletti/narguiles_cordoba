@@ -15,11 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { EnrichedOrder, EnrichedOrderItem } from "@/lib/queries/order-queries"; // Assuming EnrichedOrder is exported
-import { Trash2, Save } from "lucide-react";
+import { Trash2, Save, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { updateOrderItemQuantity, removeOrderItem, updateOrderStatus } from "@/lib/actions/order-actions";
+import { OrderStatusUpdate } from "@/app/(admin)/admin/orders/components/order-status-update";
+import { OrderStatus } from "@/interfaces/enums";
 
 // Helper to format currency (can be moved to a utils file)
 const formatCurrency = (amount: number | null | undefined) => {
@@ -66,6 +69,7 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
   const orderId = order?.id || null;
   const { data: orderItems, isLoading: loadingItems } = useOrderItems(orderId);
   const [editableItems, setEditableItems] = useState<EnrichedOrderItem[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Effect para inicializar editableItems cuando llegan los items
   useEffect(() => {
@@ -92,31 +96,52 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
   
   const handleSaveChanges = async () => {
     if (!order) return;
-    // TODO: Implement actual save logic
-    // 1. Identify changes (removed items, changed quantities)
-    // 2. Call Supabase actions to update order_item and order tables
-    // Example:
-    // const changedItems = editableItems.filter((item, index) => item.quantity !== order.order_items[index]?.quantity);
-    // const removedItemsOriginal = order.order_items.filter(originalItem => !editableItems.find(edItem => edItem.id === originalItem.id));
-
-    console.log("Original Items:", order.order_items);
-    console.log("Editable Items (Current state to save):", editableItems);
-    toast.promise(
-      async () => {
-        // Simulate API calls
-        // await Promise.all(changedItems.map(item => updateOrderItemQuantity(order.id, item.id, item.quantity)));
-        // await Promise.all(removedItemsOriginal.map(item => removeOrderItem(order.id, item.id)));
-        // await updateOrderTotals(order.id); // Recalculate order total
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-        onOrderUpdate(); // Call the callback to refetch orders
-      },
-      {
-        loading: "Guardando cambios...",
-        success: "Orden actualizada exitosamente.",
-        error: (err) => `Error al actualizar: ${err.message || 'Error desconocido'}`,
-      }
-    );
-    onOpenChange(false); // Close sheet
+    
+    setIsSaving(true);
+    
+    try {
+      // Identificar cambios
+      const originalItems = orderItems || [];
+      
+      // Items con cantidad modificada
+      const changedItems = editableItems
+        .filter(item => {
+          const originalItem = originalItems.find(oi => oi.id === item.id);
+          return originalItem && originalItem.quantity !== item.quantity;
+        });
+      
+      // Items eliminados (que están en el original pero no en los editables)
+      const removedItems = originalItems
+        .filter(originalItem => !editableItems.some(ei => ei.id === originalItem.id));
+      
+      // Actualizar cantidades
+      await Promise.all(
+        changedItems.map(item => 
+          updateOrderItemQuantity(order.id, item.id, item.quantity)
+        )
+      );
+      
+      // Eliminar items
+      await Promise.all(
+        removedItems.map(item => 
+          removeOrderItem(order.id, item.id)
+        )
+      );
+      
+      // Mostrar toast de éxito
+      toast.success("Orden actualizada exitosamente.");
+      
+      // Callback para refrescar datos
+      onOrderUpdate();
+      
+      // Cerrar el sheet
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error al guardar cambios:", error);
+      toast.error(`Error al actualizar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!order) {
@@ -132,6 +157,7 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
       "confirmed": "Confirmado",
       "processed": "Procesando",
       "pickup": "Listo para Retiro",
+      "shipped": "Enviado",
       "delivered": "Entregado",
       "cancelled": "Cancelado",
     };
@@ -202,7 +228,11 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
                 </div>
                 <div>
                   <p className="text-gray-400">Estado:</p>
-                  <p className="text-gray-200 font-medium">{spanishStatus(order.status_display || order.status)}</p>
+                  <OrderStatusUpdate 
+                    orderId={order.id}
+                    currentStatus={order.status as OrderStatus}
+                    onStatusUpdate={onOrderUpdate}
+                  />
                 </div>
                 <div>
                   <p className="text-gray-400">Total Original:</p>
@@ -282,12 +312,22 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
             </section>
           </div>
         </ScrollArea>
-        <SheetFooter className="px-6 py-4 border-t border-gray-700">
+        <SheetFooter className="px-6 pb-6">
           <SheetClose asChild>
             <Button variant="outline">Cancelar</Button>
           </SheetClose>
-          <Button onClick={handleSaveChanges} disabled={false /* TODO: disable if no changes or loading */}>
-            <Save size={16} className="mr-2" /> Guardar Cambios
+          <Button onClick={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Guardar Cambios
+              </>
+            )}
           </Button>
         </SheetFooter>
       </SheetContent>

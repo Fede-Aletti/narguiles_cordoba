@@ -26,6 +26,9 @@ import { OrderDetailSheet } from "@/components/admin/orders/order-detail-sheet";
 import { EnrichedOrder, useAdminOrders, AdminOrdersParams } from "@/lib/queries/order-queries";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounce } from '../../../../../hooks/use-debounce';
+import { OrderStatusUpdate } from "./order-status-update";
+import { OrderStatusFilter } from "./order-status-filter";
+import { createClient } from "@/utils/supabase/client";
 
 // Helper to get badge variant based on status
 const getOrderStatusBadgeVariant = (status: OrderStatus): 'default' | 'secondary' | 'destructive' | 'outline' | null | undefined => {
@@ -121,6 +124,37 @@ export function OrdersTable() {
     queryClient.invalidateQueries({ queryKey: ['admin-orders', adminOrderParams] });
   };
 
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+
+  // Agregar un estado para almacenar los recuentos de estado
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
+  // Función para obtener el recuento de órdenes por estado
+  async function fetchStatusCounts() {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc('get_orders_by_status_count');
+      
+      if (error) throw error;
+      
+      const counts: Record<string, number> = {};
+      if (data) {
+        data.forEach((item: { status: string; count: number }) => {
+          counts[item.status] = item.count;
+        });
+      }
+      
+      setStatusCounts(counts);
+    } catch (error) {
+      console.error("Error al obtener el recuento de estados:", error);
+    }
+  }
+
+  // Efecto para cargar los recuentos de estado cuando se monta el componente
+  useEffect(() => {
+    fetchStatusCounts();
+  }, []);
+
   const columns: ColumnDef<EnrichedOrder>[] = useMemo(() => [
     { accessorKey: "id", header: "ID Orden", cell: ({row}) => <div className="truncate w-28" title={row.original.id}>{row.original.id.substring(0,8)}</div> },
     {
@@ -135,9 +169,14 @@ export function OrdersTable() {
       accessorKey: "status",
       header: "Estado",
       cell: ({ row }) => (
-        <Badge variant={getOrderStatusBadgeVariant(row.original.status as OrderStatus)} className="capitalize">
-          {row.original.status_display || row.original.status.replace('_', ' ')}
-        </Badge>
+        <OrderStatusUpdate 
+          orderId={row.original.id}
+          currentStatus={row.original.status as OrderStatus}
+          onStatusUpdate={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-orders', adminOrderParams] });
+          }}
+          size="sm"
+        />
       ),
     },
     { 
@@ -172,7 +211,9 @@ export function OrdersTable() {
     columns,
     state: {
       sorting,
-      columnFilters,
+      columnFilters: statusFilter 
+        ? [...columnFilters, { id: 'status', value: statusFilter }]
+        : columnFilters,
       globalFilter: debouncedSearch,
       pagination: { pageIndex, pageSize },
     },
@@ -218,6 +259,7 @@ export function OrdersTable() {
 
   return (
     <div className="space-y-4">
+      <OrderStatusFilter onFilterChange={setStatusFilter} statusCounts={statusCounts} />
       <Input
         placeholder="Buscar orden... (ID, cliente, email, estado, fecha, monto)"
         value={search}
