@@ -186,9 +186,6 @@ export function ProductsPage() {
                 brands={brands}
                 selectedBrands={selectedBrands}
                 onBrandChange={setSelectedBrands}
-                priceRange={priceRange}
-                maxPrice={getMaxPrice()}
-                onPriceRangeChange={setPriceRange}
               />
             </div>
           )}

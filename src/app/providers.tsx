@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { AgeVerificationProvider } from '@/components/providers/age-verification-provider'
 import React from 'react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -20,8 +21,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      <AgeVerificationProvider>
+        {children}
+        <ReactQueryDevtools initialIsOpen={false} />
+      </AgeVerificationProvider>
     </QueryClientProvider>
   )
 } 

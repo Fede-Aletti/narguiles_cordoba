@@ -2,7 +2,6 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { IBrand } from "@/interfaces/brand";
 import { ICategory } from "@/interfaces/category";
 
@@ -13,9 +12,6 @@ interface ProductFiltersProps {
   brands: IBrand[];
   selectedBrands: string[];
   onBrandChange: (brands: string[]) => void;
-  priceRange: [number, number];
-  maxPrice: number;
-  onPriceRangeChange: (range: [number, number]) => void;
 }
 
 export function ProductFilters({
@@ -25,9 +21,6 @@ export function ProductFilters({
   brands,
   selectedBrands,
   onBrandChange,
-  priceRange,
-  maxPrice,
-  onPriceRangeChange,
 }: ProductFiltersProps) {
   // Handle category checkbox change
   const handleCategoryChange = (categoryId: string) => {
@@ -92,31 +85,6 @@ export function ProductFilters({
               </Label>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Price Range Filter */}
-      <div>
-        <h3 className="text-lg font-medium text-white mb-4">Rango de Precio</h3>
-        <div className="space-y-6">
-          <Slider
-            defaultValue={[0, maxPrice]}
-            value={priceRange}
-            max={maxPrice}
-            step={1}
-            onValueChange={(value) =>
-              onPriceRangeChange(value as [number, number])
-            }
-            className="py-4"
-          />
-          <div className="flex items-center justify-between">
-            <div className="bg-gray-800 px-3 py-1.5 rounded text-sm text-white">
-              ${priceRange[0]}
-            </div>
-            <div className="bg-gray-800 px-3 py-1.5 rounded text-sm text-white">
-              ${priceRange[1]}
-            </div>
-          </div>
         </div>
       </div>
     </div>

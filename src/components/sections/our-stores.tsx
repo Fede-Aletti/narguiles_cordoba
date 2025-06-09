@@ -1,6 +1,6 @@
-import { MapPin, Clock, Phone } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { MapPin, Clock, Phone } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const stores = [
   {
@@ -15,19 +15,24 @@ const stores = [
     id: 2,
     name: "Narguilas Lounge",
     address: "Av. Ambrosio Olmos 796",
-    hours: "Domingos a Miércoles: 17:00 - 00:00h, Jueves a Sábados: 17:00 - 02:00h",
+    hours:
+      "Domingos a Miércoles: 17:00 - 00:00h, Jueves a Sábados: 17:00 - 02:00h",
     phone: "+54 9 351 423-4567",
     mapUrl: "https://maps.google.com",
   },
-]
+];
 
 export function OurStores() {
   return (
     <section className="py-20 bg-gray-950">
       <div className="container px-4 md:px-6">
-        <h2 className="text-3xl font-serif font-bold text-center mb-12 text-white">
+        <h2 className="text-3xl font-serif font-bold text-center text-white">
           Visitanos en <span className="text-primary">Córdoba</span>
         </h2>
+        <p className="text-center text-gray-300 mt-4 mb-12">
+          Visitános en nuestro local de compra y venta, o viví la
+          experiencia de fumar shisha en nuestro bar.
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {stores.map((store) => (
@@ -39,7 +44,9 @@ export function OurStores() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-serif font-bold text-white mb-4">{store.name}</h3>
+                <h3 className="text-xl font-serif font-bold text-white mb-4">
+                  {store.name}
+                </h3>
 
                 <div className="space-y-3 text-gray-300">
                   <div className="flex items-start">
@@ -57,7 +64,10 @@ export function OurStores() {
                 </div>
 
                 <div className="mt-6">
-                  <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
+                  <Button
+                    variant="outline"
+                    className="w-full border-primary text-primary hover:bg-primary/10"
+                  >
                     Ver en Maps
                   </Button>
                 </div>
@@ -67,5 +77,5 @@ export function OurStores() {
         </div>
       </div>
     </section>
-  )
+  );
 }
