@@ -35,6 +35,7 @@ export function ProductSheet({
   const isOpen = open !== undefined ? open : localOpen
   const setOpen = onOpenChange || setLocalOpen
 
+
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -58,7 +59,7 @@ export function ProductSheet({
         <div className="py-4">
           <ProductForm 
             setOpen={setOpen} 
-            productData={productData as unknown as ProductFormData} 
+            productData={productData}
             isEditing={isEditing} 
           />
         </div>

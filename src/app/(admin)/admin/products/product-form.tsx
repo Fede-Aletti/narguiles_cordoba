@@ -44,7 +44,7 @@ import {
   type Media,
   productFormSchema,
   type ProductFormValues,
-  type ProductFormData,
+  type ProductRow,
 } from "@/types/product";
 import { useEffect, useState } from "react";
 import { MediaGalleryPicker } from './media-gallery-picker';
@@ -53,44 +53,30 @@ import { X } from 'lucide-react';
 
 interface ProductFormProps {
   setOpen: (open: boolean) => void;
-  productData?: ProductFormData;
+  productData?: ProductRow;
   isEditing?: boolean;
 }
 
 export function ProductForm({ setOpen, productData, isEditing = false }: ProductFormProps) {
   const queryClient = useQueryClient();
   const [selectedMedia, setSelectedMedia] = useState<Media[]>([]);
-  const [formReady, setFormReady] = useState(!isEditing);
 
   const { data: initialProductMedia } = useProductMediaItems(productData?.id);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: isEditing && productData
-      ? {
-          name: productData.name,
-          slug: productData.slug ?? undefined,
-          description: productData.description ?? null,
-          stock: productData.stock,
-          price: productData.price,
-          price_group_id: productData.price_group_id ?? null,
-          brand_id: productData.brand_id ?? null,
-          category_id: productData.category_id ?? null,
-          status: productData.status as ProductStatus,
-          selectedMediaIds: productData.selectedMediaIds ?? [],
-        }
-      : {
-          name: '',
-          slug: '',
-          description: null,
-          stock: 0,
-          price: null,
-          price_group_id: null,
-          brand_id: null,
-          category_id: null,
-          status: PRODUCT_STATUS_OPTIONS[0].value,
-          selectedMediaIds: [],
-        },
+    defaultValues: {
+      name: '',
+      slug: '',
+      description: '',
+      stock: 0,
+      price: 0,
+      price_group_id: null,
+      brand_id: null,
+      category_id: null,
+      status: PRODUCT_STATUS_OPTIONS[0].value,
+      selectedMediaIds: [],
+    }
   });
 
   useEffect(() => {
@@ -122,32 +108,22 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
 
   useEffect(() => {
     if (isEditing && productData && !isLoading) {
-      console.log("Datos cargados, estableciendo valores del formulario:", {
-        price_group_id: productData.price_group_id,
-        brand_id: productData.brand_id,
-        category_id: productData.category_id
+      form.reset({
+        name: productData.name,
+        slug: productData.slug ?? '',
+        description: productData.description ?? null,
+        stock: productData.stock,
+        price: productData.price,
+        price_group_id: productData.price_group?.id ?? null,
+        brand_id: productData.brand?.id ?? null,
+        category_id: productData.category?.id ?? null,
+        status: productData.status as ProductStatus,
+        selectedMediaIds: initialProductMedia?.map(m => m.id).filter(Boolean) as string[] ?? [],
       });
-      
-      form.setValue('price_group_id', productData.price_group_id ?? null);
-      form.setValue('brand_id', productData.brand_id ?? null);
-      form.setValue('category_id', productData.category_id ?? null);
-      
-      setFormReady(true);
     }
-  }, [isEditing, productData, isLoading, form]);
+  }, [isEditing, productData, isLoading, form.reset, initialProductMedia]);
 
   const selectedPriceGroupId = form.watch("price_group_id");
-
-  useEffect(() => {
-    if (isEditing) {
-      const values = form.getValues();
-      console.log("Valores actuales del formulario:", {
-        price_group_id: values.price_group_id,
-        brand_id: values.brand_id,
-        category_id: values.category_id
-      });
-    }
-  }, [isEditing, selectedPriceGroupId, form]);
 
   useEffect(() => {
     if (selectedPriceGroupId && priceGroups) {
@@ -157,7 +133,6 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
       if (selectedGroup && selectedGroup.price !== undefined) {
         form.setValue("price", selectedGroup.price, { shouldValidate: true });
       }
-    } else if (!selectedPriceGroupId) {
     }
   }, [selectedPriceGroupId, priceGroups, form]);
 
@@ -186,7 +161,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
       const payload: ActionProductFormData = {
         name: values.name,
         slug: values.slug ?? undefined,
-        description: values.description === undefined ? null : values.description,
+        description: values.description,
         stock: values.stock,
         price: values.price,
         price_group_id: values.price_group_id ?? null,
@@ -216,7 +191,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
       const payload: ActionProductFormData = {
         name: values.name,
         slug: values.slug ?? undefined,
-        description: values.description === undefined ? null : values.description,
+        description: values.description,
         stock: values.stock,
         price: values.price,
         price_group_id: values.price_group_id ?? null,
@@ -313,17 +288,13 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         <FormField
           control={form.control}
           name="price_group_id"
-          render={({ field }) => {
-            const valueExists = priceGroups?.some(group => group.id === field.value);
-            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
-            
-            return (
+          render={({ field }) => (
               <FormItem>
                 <FormLabel>Grupo de Precios (Opcional)</FormLabel>
                 <Select 
                   disabled={isLoadingPriceGroups}
                   onValueChange={(value) => field.onChange(value === "null" ? null : value)}
-                  value={fieldValue}
+                  value={field.value ?? undefined}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -345,8 +316,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                 </FormDescription>
                 <FormMessage />
               </FormItem>
-            );
-          }}
+          )}
         />
 
         <FormField
@@ -369,17 +339,13 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
         <FormField
           control={form.control}
           name="brand_id"
-          render={({ field }) => {
-            const valueExists = brands?.some(brand => brand.id === field.value);
-            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
-            
-            return (
+          render={({ field }) => (
               <FormItem>
                 <FormLabel>Marca</FormLabel>
                 <Select 
                   disabled={isLoadingBrands}
                   onValueChange={(value) => field.onChange(value === "null" ? null : value)}
-                  value={fieldValue}
+                  value={field.value ?? undefined}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -397,24 +363,19 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                 </Select>
                 <FormMessage />
               </FormItem>
-            );
-          }}
+          )}
         />
 
         <FormField
           control={form.control}
           name="category_id"
-          render={({ field }) => {
-            const valueExists = categories?.some(category => category.id === field.value);
-            const fieldValue = field.value === null || field.value === undefined || !valueExists ? "null" : field.value;
-            
-            return (
+          render={({ field }) => (
               <FormItem>
                 <FormLabel>Categoría</FormLabel>
                 <Select 
                   disabled={isLoadingCategories}
                   onValueChange={(value) => field.onChange(value === "null" ? null : value)}
-                  value={fieldValue}
+                  value={field.value ?? undefined}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -432,8 +393,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
                 </Select>
                 <FormMessage />
               </FormItem>
-            );
-          }}
+          )}
         />
 
         <FormField
@@ -496,7 +456,7 @@ export function ProductForm({ setOpen, productData, isEditing = false }: Product
 
         <Button 
           type="submit" 
-          disabled={!formReady || isLoading || createMutation.isPending || updateMutation.isPending}
+          disabled={isLoading || createMutation.isPending || updateMutation.isPending}
           className="w-full"
         >
           {isLoading ? (

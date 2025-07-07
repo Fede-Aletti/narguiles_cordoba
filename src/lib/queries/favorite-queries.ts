@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/lib/store"; // Corregir ruta de importación
 import type { IFavorite } from "@/interfaces/favorite";
 import type { IUser } from "@/interfaces/user"; // For userProfile.id type
+import type { IProduct } from '@/interfaces/product';
 
 export interface Favorite {
   id: number;
@@ -49,6 +50,39 @@ export function useUserFavoriteProductIds() {
       setFavoriteIds(ids || []); 
       return ids || [];
     },
+  });
+}
+
+// Nueva función para obtener favoritos por user_id (para admin)
+export async function fetchFavoritesByUserId(userId: string): Promise<IFavorite[]> {
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("favorite")
+    .select(`
+      *,
+      product:product_id (
+        id,
+        name,
+        slug,
+        price
+      )
+    `)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error(`Error fetching favorites for user ${userId}:`, error);
+    throw error;
+  }
+  return data || [];
+}
+
+// Nuevo hook para usar la función anterior
+export function useFavoritesByUserId(userId: string | undefined | null) {
+  return useQuery<IFavorite[], Error>({
+    queryKey: ["user-favorites", userId],
+    queryFn: () => userId ? fetchFavoritesByUserId(userId) : Promise.resolve([]),
+    enabled: !!userId,
   });
 }
 

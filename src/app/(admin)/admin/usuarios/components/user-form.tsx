@@ -22,13 +22,14 @@ import {
 import { UserRole } from "@/interfaces/enums";
 
 const userRoles: { label: string; value: UserRole }[] = [
-  { label: "Superadmin", value: UserRole.SUPERADMIN },
+  { label: "Admin", value: UserRole.SUPERADMIN },
   { label: "Admin", value: UserRole.ADMIN },
   { label: "Marketing", value: UserRole.MARKETING },
   { label: "Cliente", value: UserRole.CLIENT },
 ];
 
 const schema = z.object({
+  email: z.string().email().optional(),
   first_name: z.string().min(1, "El nombre es requerido"),
   last_name: z.string().min(1, "El apellido es requerido"),
   phone_number: z.string().optional().nullable(),
@@ -49,6 +50,7 @@ export function UserForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues || {
+      email: "",
       first_name: "",
       last_name: "",
       phone_number: "",
@@ -59,6 +61,19 @@ export function UserForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Email" disabled />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}

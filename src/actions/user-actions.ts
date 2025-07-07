@@ -7,20 +7,16 @@ import { GenderType, UserRole } from '@/interfaces/enums';
 
 export type UserWithAuthEmail = IUser & { email?: string };
 
-const USER_SELECT_QUERY = 'id, auth_user_id, first_name, last_name, phone_number, role, gender, created_at, updated_at, deleted_at, avatar_image:avatar_image_id(*)';
+const USER_SELECT_QUERY = 'id, auth_user_id, first_name, last_name, phone_number, role, gender, created_at, updated_at, deleted_at, email, avatar_image:avatar_image_id(*)';
 
-function mapRawUserToIUser(rawUser: any, authEmail?: string): UserWithAuthEmail {
-  const user = {
+function mapRawUserToIUser(rawUser: any): UserWithAuthEmail {
+  return {
     ...rawUser,
     avatar_image: rawUser.avatar_image as IMediaItem | null,
-  } as IUser;
-  if (authEmail) {
-    return { ...user, email: authEmail };
-  }
-  return user;
+  } as UserWithAuthEmail;
 }
 
-// Fetch all active users and their auth emails
+// Fetch all active users
 export async function fetchUsersWithAuthEmail(): Promise<UserWithAuthEmail[]> {
   const supabase = await createClient();
 
@@ -33,23 +29,10 @@ export async function fetchUsersWithAuthEmail(): Promise<UserWithAuthEmail[]> {
   if (usersError) throw new Error(usersError.message);
   if (!users) return [];
 
-  // Get auth.user emails for all fetched users
-  const authUserIds = users.map(u => u.auth_user_id);
-  const { data: authUsers, error: authError } = await supabase
-    .from('auth.users')
-    .select('id, email')
-    .in('id', authUserIds);
-
-  if (authError) {
-    console.warn("Could not fetch auth user emails:", authError.message); 
-  }
-
-  const authEmailMap = new Map(authUsers?.map(au => [au.id, au.email]));
-
-  return users.map(user => mapRawUserToIUser(user, authEmailMap.get(user.auth_user_id)));
+  return users.map(mapRawUserToIUser);
 }
 
-// Fetch a single user by ID with auth email
+// Fetch a single user by ID
 export async function fetchUserByIdWithAuthEmail(id: string): Promise<UserWithAuthEmail | null> {
   const supabase = await createClient();
   const { data: user, error: userError } = await supabase
@@ -62,19 +45,8 @@ export async function fetchUserByIdWithAuthEmail(id: string): Promise<UserWithAu
   if (userError) throw new Error(userError.message);
   if (!user) return null;
 
-  const { data: authUser, error: authError } = await supabase
-    .from('auth.users')
-    .select('email')
-    .eq('id', user.auth_user_id)
-        .single();
-
-  if (authError) {
-    console.warn(`Could not fetch auth email for user ${id}:`, authError.message);
-  }
-
-  return mapRawUserToIUser(user, authUser?.email);
+  return mapRawUserToIUser(user);
 }
-
 
 export interface UpdateUserPayload {
   first_name?: string | null;

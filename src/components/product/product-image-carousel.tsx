@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { ChevronLeft, ChevronRight, Expand, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 interface ProductImage {
   id: string
@@ -75,7 +76,10 @@ export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
             <Expand className="h-5 w-5" />
             <span className="sr-only">View fullscreen</span>
           </Button>
-          <Button variant="ghost" size="icon" className="bg-black/50 text-white hover:bg-black/70">
+          <Button variant="ghost" size="icon" className="bg-black/50 text-white hover:bg-black/70" onClick={() => {
+            navigator.clipboard.writeText(window.location.href)
+            toast.success('URL copiada al portapapeles')
+          }}>
             <Share2 className="h-5 w-5" />
             <span className="sr-only">Share product</span>
           </Button>
