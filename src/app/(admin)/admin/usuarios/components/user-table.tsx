@@ -43,6 +43,9 @@ import { IUser } from "@/interfaces/user";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAddressesByUserId } from "@/lib/queries/address-queries";
 import type { IAddress } from "@/interfaces/address";
+import { useFavoritesByUserId } from "@/lib/queries/favorite-queries";
+import { useOrdersByUserId } from "@/lib/queries/order-queries";
+import Link from "next/link";
 
 interface UserRowDetailProps {
   userId: string;
@@ -50,36 +53,62 @@ interface UserRowDetailProps {
 
 function UserRowDetail({ userId }: UserRowDetailProps) {
   const { data: addresses, isLoading: isLoadingAddresses, error: addressesError } = useAddressesByUserId(userId);
+  const { data: favorites, isLoading: isLoadingFavorites, error: favoritesError } = useFavoritesByUserId(userId);
+  const { data: orders, isLoading: isLoadingOrders, error: ordersError } = useOrdersByUserId(userId);
 
   return (
-    <div className="p-4 bg-muted/50">
-      <h4 className="font-semibold mb-2">Detalles Adicionales:</h4>
-      
-      <div className="mb-4">
-        <h5 className="font-medium mb-1">Direcciones:</h5>
-        {isLoadingAddresses && <p>Cargando direcciones...</p>}
-        {addressesError && <p className="text-red-500">Error al cargar direcciones: {addressesError.message}</p>}
+    <div className="p-4 bg-muted/50 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <h5 className="font-medium mb-2">Direcciones:</h5>
+        {isLoadingAddresses && <p className="text-sm text-muted-foreground">Cargando...</p>}
+        {addressesError && <p className="text-sm text-red-500">Error: {addressesError.message}</p>}
         {addresses && addresses.length > 0 ? (
-          <ul className="list-disc pl-5 space-y-1">
+          <ul className="list-disc pl-5 space-y-1 text-sm">
             {addresses.map(addr => (
               <li key={addr.id}>
-                {addr.street} {addr.street_number}, {addr.city}, {addr.province}
+                {addr.street} {addr.street_number}, {addr.city}
               </li>
             ))}
           </ul>
-        ) : addresses && addresses.length === 0 ? (
-          <p>No hay direcciones registradas.</p>
+        ) : addresses ? (
+          <p className="text-sm text-muted-foreground">No hay direcciones.</p>
         ) : null}
       </div>
 
-      <div className="mb-4">
-        <h5 className="font-medium mb-1">Favoritos:</h5>
-        <p>Datos de favoritos aquí...</p>
+      <div>
+        <h5 className="font-medium mb-2">Favoritos:</h5>
+        {isLoadingFavorites && <p className="text-sm text-muted-foreground">Cargando...</p>}
+        {favoritesError && <p className="text-sm text-red-500">Error: {favoritesError.message}</p>}
+        {favorites && favorites.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1 text-sm">
+            {favorites.map(fav => (
+              <li key={fav.id}>
+                <Link href={`/tienda/${fav.product?.slug}`} className="hover:underline text-blue-600">
+                  {fav.product?.name || 'Producto no disponible'}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : favorites ? (
+          <p className="text-sm text-muted-foreground">No hay favoritos.</p>
+        ) : null}
       </div>
 
       <div>
-        <h5 className="font-medium mb-1">Órdenes:</h5>
-        <p>Datos de órdenes aquí...</p>
+        <h5 className="font-medium mb-2">Órdenes Recientes:</h5>
+        {isLoadingOrders && <p className="text-sm text-muted-foreground">Cargando...</p>}
+        {ordersError && <p className="text-sm text-red-500">Error: {ordersError.message}</p>}
+        {orders && orders.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1 text-sm">
+            {orders.slice(0, 5).map(order => ( // Mostramos solo las últimas 5
+              <li key={order.id}>
+                ID: {order.id.substring(0, 8)}... - ${order.total_amount} ({order.status_display})
+              </li>
+            ))}
+          </ul>
+        ) : orders ? (
+          <p className="text-sm text-muted-foreground">No hay órdenes.</p>
+        ) : null}
       </div>
     </div>
   );
@@ -132,7 +161,7 @@ export function UserTable({ initialUsers }: UserTableProps) {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "superadmin":
-        return <Badge className="bg-purple-500">Superadmin</Badge>;
+        return <Badge className="bg-blue-500">Admin</Badge>;
       case "admin":
         return <Badge className="bg-blue-500">Admin</Badge>;
       case "marketing":
@@ -241,6 +270,7 @@ export function UserTable({ initialUsers }: UserTableProps) {
           {editUser && (
             <UserForm
               defaultValues={{
+                email: editUser.email,
                 first_name: editUser.first_name || "",
                 last_name: editUser.last_name || "",
                 phone_number: editUser.phone_number,

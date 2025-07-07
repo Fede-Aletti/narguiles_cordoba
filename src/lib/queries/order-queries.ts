@@ -316,3 +316,60 @@ export function useAdminOrders(params: AdminOrdersParams) {
     placeholderData: (previousData) => previousData,
   });
 }
+
+// Nueva función para obtener órdenes por user_id (para admin)
+export async function fetchOrdersByUserId(userId: string): Promise<EnrichedOrder[]> {
+  if (!userId) return [];
+  
+  const supabase = createClient();
+  const { data: ordersData, error: ordersError } = await supabase
+    .from("order")
+    .select("*, shipping_address:shipping_address_id(*)")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (ordersError) {
+    console.error(`Error fetching orders for user ${userId}:`, ordersError);
+    throw ordersError;
+  }
+  if (!ordersData) return [];
+
+  const enrichedOrders = await Promise.all(
+    ordersData.map(async (orderData) => {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("order_item")
+        .select(`*, product:product_id (${ORDER_ITEM_PRODUCT_SELECT})`)
+        .eq("order_id", orderData.id)
+        .is("deleted_at", null);
+
+      let processedItems: EnrichedOrderItem[] = [];
+      if (!itemsError && itemsData) {
+        processedItems = itemsData.map((item: any) => ({
+          ...item,
+          product: item.product,
+        })) as EnrichedOrderItem[];
+      }
+      
+      const { user_id, shipping_address_id, ...restOfOrderData } = orderData as IOrder;
+
+      return {
+        ...restOfOrderData,
+        shipping_address: orderData.shipping_address as IAddress | null,
+        order_items: processedItems,
+        statusDisplay: orderStatusDisplayMapping[orderData.status as OrderStatus] || orderData.status,
+      } as EnrichedOrder;
+    })
+  );
+
+  return enrichedOrders;
+}
+
+// Nuevo hook para usar la función anterior
+export function useOrdersByUserId(userId: string | undefined | null) {
+  return useQuery<EnrichedOrder[], Error>({
+    queryKey: ["user-orders", userId],
+    queryFn: () => (userId ? fetchOrdersByUserId(userId) : Promise.resolve([])),
+    enabled: !!userId,
+  });
+}
