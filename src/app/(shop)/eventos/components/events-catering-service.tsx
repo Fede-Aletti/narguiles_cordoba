@@ -63,19 +63,19 @@ export function EventCateringService() {
             <div className="order-1 md:order-2">
               {/* You can add an illustrative image here if you have one */}
               {/* For example:
+              */}
               <img 
-                src="/placeholder.svg?height=500&width=500&text=Catering+Premium" 
+                src="/assets/images/eventos/4.jpeg" 
                 alt="Servicio de Catering de Narguilas Premium" 
                 className="rounded-lg shadow-xl aspect-square object-cover"
               /> 
-              */}
-              <div className="aspect-square w-full rounded-lg bg-gray-800 shadow-xl">
+              {/* <div className="aspect-square w-full rounded-lg bg-gray-800 shadow-xl">
                  <img 
                     src="/placeholder.svg?height=500&width=500&text=Catering+Narguilas" 
                     alt="Catering de Narguilas Narguilas Córdoba" 
                     className="h-full w-full rounded-lg object-cover"
                   />
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

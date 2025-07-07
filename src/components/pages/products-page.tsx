@@ -176,7 +176,7 @@ export function ProductsPage() {
                   className="text-gold-400 p-0 h-auto" 
                   onClick={resetFilters}
                 >
-                  Resetear
+                  Limpiar filtros
                 </Button>
               </div>
               <ProductFilters
@@ -201,7 +201,7 @@ export function ProductsPage() {
                   className="mt-4 border-gold-500 text-gold-400" 
                   onClick={resetFilters}
                 >
-                  Resetear Filtros
+                  Limpiar filtros
                 </Button>
               </div>
             ) : (

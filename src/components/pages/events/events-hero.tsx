@@ -3,7 +3,7 @@ export function EventsHero() {
     <section className="relative h-[60vh] min-h-[400px] w-full overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0 bg-gray-900">
-        <div className="h-full w-full bg-[url('/placeholder.svg?height=1080&width=1920')] bg-cover bg-center opacity-40"></div>
+        <div className="h-full w-full bg-[url('/assets/images/eventos/1.jpeg')] bg-cover bg-center opacity-40"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
       </div>
 

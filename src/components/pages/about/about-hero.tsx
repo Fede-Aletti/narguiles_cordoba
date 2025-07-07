@@ -1,12 +1,13 @@
 
 import { FlameIcon } from "lucide-react";
+import Image from "next/image";
 
 export const NosotrosHero = () => {
   return (
     <section className="relative bg-gray-950 py-20 md:py-32">
       <div className="absolute inset-0 z-0 opacity-30">
         {/* Optional: Subtle background pattern or image */}
-        {/* <Image src="/path-to-your-subtle-background.jpg" alt="Background" layout="fill" objectFit="cover" /> */}
+        <Image src="/assets/images/eventos/1.jpeg" alt="Background" layout="fill" objectFit="cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
       </div>
       <div className="container relative z-10 mx-auto px-4 text-center">

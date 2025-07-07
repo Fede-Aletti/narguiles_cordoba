@@ -35,7 +35,7 @@ export function PartnerRetailers() {
           ciudad.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           {partners.map((partner) => (
             <Card key={partner.id} className="bg-gray-900 border-gray-800">
               <CardContent className="p-6 text-center flex flex-col justify-between h-full">

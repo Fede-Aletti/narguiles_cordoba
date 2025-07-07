@@ -1,6 +1,7 @@
 import { MapPin, Clock, Phone } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 const stores = [
   {
@@ -10,6 +11,7 @@ const stores = [
     hours: "Lunes a Viernes: 15:00 - 20:00h, Sábados: 17:00 - 21:00h",
     phone: "+54 9 351 423-4567",
     mapUrl: "https://maps.google.com",
+    image: "/assets/images/local/local.jpeg",
   },
   {
     id: 2,
@@ -19,6 +21,7 @@ const stores = [
       "Domingos a Miércoles: 17:00 - 00:00h, Jueves a Sábados: 17:00 - 02:00h",
     phone: "+54 9 351 423-4567",
     mapUrl: "https://maps.google.com",
+    image: "/assets/images/local/lounge.jpeg",
   },
 ];
 
@@ -39,8 +42,14 @@ export function OurStores() {
             <Card key={store.id} className="bg-gray-900 border-gray-800">
               <CardContent className="p-6">
                 <div className="mb-6">
-                  <div className="h-48 bg-gray-800 rounded-md flex items-center justify-center mb-4">
-                    <div className="text-white/50 text-sm">Store Image</div>
+                  <div className="h-48 bg-gray-800 rounded-md flex items-center justify-center mb-4 overflow-hidden">
+                    <Image
+                      src={store.image}
+                      alt={store.name}
+                      width={500}
+                      height={500}
+                      className="object-cover"
+                    />
                   </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import { EventsHero } from "@/components/pages/events/events-hero";
 import { EventsGrid } from "@/components/pages/events/events-grid";
+import { EventsMarquee } from "@/components/pages/events/events-marquee";
 import { EventCateringService } from "./components/events-catering-service";
 
 export const metadata = {
@@ -14,8 +15,9 @@ export default function EventsPage() {
       <main className="flex-1">
         <EventsHero />
         <EventCateringService />
+        <EventsMarquee />
         <EventsGrid />
-      </main>s
+      </main>
     </div>
   );
 }
