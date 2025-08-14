@@ -126,9 +126,50 @@ export function useCreateAddress() {
   });
 }
 
-// Placeholder for Update and Delete address queries if needed in the future
-// export async function updateAddress(addressId: string, payload: Partial<Omit<IAddress, 'id' | 'user_id' | 'created_at' | 'deleted_at'>>): Promise<IAddress> { ... }
-// export function useUpdateAddress() { ... }
-// export async function deleteAddress(addressId: string): Promise<void> { ... }
-// export function useDeleteAddress() { ... }
+// Update an existing address (only editable, non-owned fields)
+export type UpdateAddressPayload = Partial<Omit<IAddress, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'deleted_at'>>;
+
+export async function updateAddress(addressId: string, payload: UpdateAddressPayload): Promise<IAddress> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('address')
+    .update(payload)
+    .eq('id', addressId)
+    .select('*')
+    .single<IAddress>();
+  if (error) throw error;
+  if (!data) throw new Error('No se pudo actualizar la dirección.');
+  return data;
+}
+
+export function useUpdateAddress() {
+  const queryClient = useQueryClient();
+  return useMutation<IAddress, Error, { id: string; payload: UpdateAddressPayload }>({
+    mutationFn: ({ id, payload }) => updateAddress(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-user-addresses'] });
+    },
+  });
+}
+
+// Soft-delete an address by setting deleted_at
+export async function deleteAddress(addressId: string): Promise<{ id: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('address')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', addressId);
+  if (error) throw error;
+  return { id: addressId };
+}
+
+export function useDeleteAddress() {
+  const queryClient = useQueryClient();
+  return useMutation<{ id: string }, Error, { id: string }>({
+    mutationFn: ({ id }) => deleteAddress(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-user-addresses'] });
+    },
+  });
+}
 

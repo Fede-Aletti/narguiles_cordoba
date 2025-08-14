@@ -20,7 +20,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { updateOrderItemQuantity, removeOrderItem, updateOrderStatus } from "@/lib/actions/order-actions";
+import { updateOrderItemQuantity, removeOrderItem, updateOrderStatus, deleteOrderPermanently } from "@/lib/actions/order-actions";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { OrderStatusUpdate } from "@/app/(admin)/admin/orders/components/order-status-update";
 import { OrderStatus } from "@/interfaces/enums";
 
@@ -316,6 +317,39 @@ export function OrderDetailSheet({ order, isOpen, onOpenChange, onOrderUpdate }:
           <SheetClose asChild>
             <Button variant="outline">Cancelar</Button>
           </SheetClose>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Eliminar Orden
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar orden definitivamente</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará permanentemente la orden y todos sus ítems. No se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    if (!order) return;
+                    try {
+                      await deleteOrderPermanently(order.id);
+                      toast.success("Orden eliminada");
+                      onOrderUpdate();
+                      onOpenChange(false);
+                    } catch (e: any) {
+                      toast.error(e?.message || "No se pudo eliminar la orden");
+                    }
+                  }}
+                >
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button onClick={handleSaveChanges} disabled={isSaving}>
             {isSaving ? (
               <>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { UserProfileForm } from "./user-profile-form";
+import { AddressesSection } from "./addresses-section";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -52,6 +53,9 @@ export default async function ProfilePage() {
             <div className="bg-gray-900 rounded-lg shadow-lg p-6">
               <h3 className="font-semibold text-xl text-white mb-6">Editar Perfil</h3>
               <UserProfileForm userData={userData || undefined} userId={userData?.id} />
+            </div>
+            <div className="bg-gray-900 rounded-lg shadow-lg p-6 mt-8">
+              <AddressesSection />
             </div>
           </div>
         </div>
