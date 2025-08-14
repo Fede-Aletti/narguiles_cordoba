@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 export default function CheckoutPage() {
   const { cartItems } = useStore();
   const { data: addresses, isLoading: addressesLoading } = useUserAddresses();
-  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const router = useRouter();
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 

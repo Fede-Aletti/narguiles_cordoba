@@ -205,6 +205,58 @@ export async function removeOrderItem(orderId: string, itemId: string) {
 }
 
 /**
+ * Elimina permanentemente una orden y sus items
+ */
+export async function deleteOrderPermanently(orderId: string) {
+  if (!orderId) {
+    throw new Error("ID de orden inválido");
+  }
+
+  const supabase = await createClient();
+
+  // Verificar permisos del usuario (admin/superadmin)
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  const { data: userProfile } = await supabase
+    .from("user")
+    .select("role")
+    .eq("auth_user_id", authUser.id)
+    .single();
+
+  if (!userProfile || !["superadmin", "admin"].includes(userProfile.role)) {
+    throw new Error("No tienes permisos para eliminar órdenes");
+  }
+
+  // Intentar borrar items primero (por si no hay ON DELETE CASCADE)
+  const { error: itemsDeleteError } = await supabase
+    .from("order_item")
+    .delete()
+    .eq("order_id", orderId);
+  if (itemsDeleteError) {
+    console.error("Error al eliminar items de la orden:", itemsDeleteError);
+    throw new Error(`No se pudieron eliminar los items: ${itemsDeleteError.message}`);
+  }
+
+  // Borrar la orden
+  const { error: orderDeleteError } = await supabase
+    .from("order")
+    .delete()
+    .eq("id", orderId);
+  if (orderDeleteError) {
+    console.error("Error al eliminar la orden:", orderDeleteError);
+    throw new Error(`No se pudo eliminar la orden: ${orderDeleteError.message}`);
+  }
+
+  // Revalidar la vista de órdenes
+  revalidatePath("/admin/orders");
+
+  return { id: orderId };
+}
+
+/**
  * Función auxiliar para recalcular los totales de una orden
  */
 async function recalculateOrderTotals(orderId: string) {

@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Address } from '@/interfaces/address';
+import type { IAddress } from '@/interfaces/address';
 import { Button } from '@/components/ui/button';
 import { AddressForm } from './address-form';
 
 
 interface AddressesListProps {
-  addresses: Address[];
+  addresses: IAddress[];
   isLoading: boolean;
-  selectedAddressId: number | null;
-  onSelect: (id: number) => void;
+  selectedAddressId: string | null;
+  onSelect: (id: string) => void;
 }
 
 export function AddressesList({ addresses, isLoading, selectedAddressId, onSelect }: AddressesListProps) {

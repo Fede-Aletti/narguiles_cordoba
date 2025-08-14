@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 interface CartSummaryProps {
   cartItems: any[];
-  selectedAddressId: number | null;
+  selectedAddressId: string | null;
 }
 
 export function CartSummary({ cartItems, selectedAddressId }: CartSummaryProps) {
@@ -18,7 +18,7 @@ export function CartSummary({ cartItems, selectedAddressId }: CartSummaryProps) 
   const handleConfirm = () => {
     if (!selectedAddressId || cartItems.length === 0) return;
     createOrder(
-      { addressId: selectedAddressId.toString(), cartItems },
+      { addressId: selectedAddressId, cartItems },
       {
         onSuccess: (order) => {
           router.push('/pedidos');
