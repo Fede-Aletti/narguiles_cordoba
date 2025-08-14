@@ -42,13 +42,21 @@ function mapRawProductToIShopProduct(rawProduct: any, userFavoriteIds: string[] 
 
   const images: IMediaItem[] | null = productMedia?.map(pm => pm.media).filter(Boolean) as IMediaItem[] || null;
 
+  // If product is linked to a price group, always prefer the group's price
+  const effectivePrice: number | null =
+    (rawProduct.price_group && typeof rawProduct.price_group.price === 'number')
+      ? Number(rawProduct.price_group.price)
+      : (rawProduct.price ?? null) !== null && (rawProduct.price ?? null) !== undefined
+        ? Number(rawProduct.price)
+        : null;
+
   return {
     id: rawProduct.id as string,
     name: rawProduct.name as string,
     slug: rawProduct.slug as string,
     description: rawProduct.description as string | null,
     stock: rawProduct.stock as number,
-    price: rawProduct.price as number | null,
+    price: effectivePrice,
     price_group_id: rawProduct.price_group_id as string | null,
     price_group: rawProduct.price_group as IPriceGroup | null,
     brand_id: rawProduct.brand_id as string | null,

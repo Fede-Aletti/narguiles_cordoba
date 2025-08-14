@@ -18,7 +18,7 @@ interface RPCProduct {
   name: string;
   slug: string;
   description: string;
-  price: number;
+  price: number | null;
   stock: number;
   image_url?: string;
   category_name?: string;
@@ -65,7 +65,7 @@ export function FeaturedProducts() {
           name: p.name || "Producto Desconocido",
           slug: p.slug || String(p.id),
           description: p.description || "",
-          price: p.price || 0,
+          price: (p.price ?? 0),
           image: p.image_url || "/placeholder.svg",
           category: p.category_name || "Sin categoría",
           stock: p.stock || 0,

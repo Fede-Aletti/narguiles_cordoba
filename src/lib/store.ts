@@ -5,7 +5,7 @@ export type Product = {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // Effective price used in cart (already resolved)
   image?: string;
   slug: string;
   category: string;
@@ -49,7 +49,8 @@ export const useStore = create<StoreState>()(
             id: String(product.id),
             name: product.name,
             description: product.description || "",
-            price: product.price || 0,
+            // product.price should already be effective (own price or group price)
+            price: (product.price ?? 0),
             image: mainImage,
             slug: product.slug || "",
             category:

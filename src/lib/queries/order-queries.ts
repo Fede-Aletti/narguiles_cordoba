@@ -122,7 +122,7 @@ export function useUserOrdersWithDetails() {
 }
 
 interface CartItemForOrder {
-  product: Pick<IProduct, 'id' | 'price'>; 
+  product: Pick<IProduct, 'id' | 'price' | 'price_group' | 'price_group_id'>; 
   quantity: number;
 }
 
@@ -144,9 +144,28 @@ export async function createOrderFromCart(
     throw new Error(profileError?.message || "No se encontró el perfil del usuario.");
   }
 
+  // Recalcular precios de forma segura del lado del servidor usando el grupo de precios cuando aplique
+  // 1) Buscar precios efectivos actuales para todos los productos involucrados
+  const productIds = cartItems.map((ci) => ci.product.id);
+  const { data: freshProducts, error: freshError } = await supabase
+    .from('product')
+    .select('id, price, price_group:price_group_id(price)')
+    .in('id', productIds);
+  if (freshError) {
+    console.error('Error fetching fresh product prices:', freshError);
+    throw new Error(freshError.message || 'No se pudieron obtener los precios actuales.');
+  }
+  const idToPrice: Record<string, number> = {};
+  for (const fp of (freshProducts || [])) {
+    const ownPrice = (fp as any).price as number | null;
+    const groupPrice = (fp as any).price_group?.price as number | undefined;
+    const effective = typeof ownPrice === 'number' ? ownPrice : (typeof groupPrice === 'number' ? groupPrice : 0);
+    idToPrice[(fp as any).id as string] = effective;
+  }
+
   const totalAmount = cartItems.reduce((sum, item) => {
-    const price = item.product.price || 0; 
-    return sum + price * item.quantity;
+    const effectivePrice = idToPrice[item.product.id] ?? 0;
+    return sum + effectivePrice * item.quantity;
   }, 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -174,7 +193,7 @@ export async function createOrderFromCart(
     order_id: orderData.id,
     product_id: item.product.id,
     quantity: item.quantity,
-    price_at_purchase: item.product.price || 0, 
+    price_at_purchase: idToPrice[item.product.id] ?? 0, 
   }));
 
   const { error: itemsError } = await supabase.from("order_item").insert(orderItemsToInsert);

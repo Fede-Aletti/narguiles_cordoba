@@ -120,7 +120,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
       {/* Price and Brand */}
       <div className="flex items-center justify-between">
         <div className="text-3xl font-bold text-gold-400">
-          ${product.price?.toFixed(2) || "N/A"}
+          ${ (product.price ?? 0).toFixed(2) }
         </div>
         {product.brand && (
           <div className="text-gray-400">

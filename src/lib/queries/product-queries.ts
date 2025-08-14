@@ -24,9 +24,17 @@ function mapRawToFullIProduct(raw: any): IProduct {
   })) || null;
 
   const images: IMediaItem[] | null = productMedia?.map(pm => pm.media).filter(Boolean) as IMediaItem[] || null;
+  // If product has a price group, prefer its price
+  const effectivePrice: number | null =
+    (raw.price_group && typeof raw.price_group.price === 'number')
+      ? Number(raw.price_group.price)
+      : (raw.price ?? null) !== null && (raw.price ?? null) !== undefined
+        ? Number(raw.price)
+        : null;
   
   return {
     ...raw,
+    price: effectivePrice,
     price_group: raw.price_group as IPriceGroup | null,
     brand: raw.brand as IBrand | null,
     category: raw.category as ICategory | null,

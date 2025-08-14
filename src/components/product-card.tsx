@@ -130,7 +130,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <Link href={`/tienda/${product.slug}`} className="hover:text-gold-400 transition-colors">
             <h3 className="font-medium text-white text-lg truncate" title={product.name}>{product.name}</h3>
           </Link>
-          <span className="text-gold-400 font-semibold ml-2 flex-shrink-0">${product.price?.toFixed(2) || "N/A"}</span>
+          <span className="text-gold-400 font-semibold ml-2 flex-shrink-0">${(product.price ?? 0).toFixed(2)}</span>
         </div>
         {product.brand && (
           <div className="text-gray-400 text-sm mb-2 truncate" title={product.brand.name}> 
